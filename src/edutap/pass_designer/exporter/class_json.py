@@ -19,7 +19,6 @@ from edutap.wallet_google.models.datatypes.class_template_info import (
     ListTemplateOverride,
     TemplateItem,
 )
-from edutap.wallet_google.models.datatypes.general import Image, ImageUri
 
 from ..draft.models import (
     BarcodeSection,
@@ -32,6 +31,7 @@ from ..draft.models import (
 )
 from ..platforms.google.families import FamilyDescriptor
 from ..platforms.google.families import get as get_family
+from ._head_fields import convert_head_value
 
 
 def _selector(line: Line) -> FieldSelector:
@@ -153,17 +153,13 @@ def _head_payload(descriptor: FamilyDescriptor, head: dict[str, str]) -> dict[st
     a family's head holds, so a stray key is more likely stale editor state
     than a value this exporter should preserve.
 
-    `image_uri` fields need their string value wrapped as
-    `Image(sourceUri=ImageUri(uri=...))`, since `Draft.head` is
-    `dict[str, str]` but the wallet model expects a nested `Image`. An empty
-    value is skipped rather than wrapped, because `ImageUri.uri` is a
-    required, validated URL — an empty string would fail there, not signal
-    "no image" the way it does for a plain text field.
-
-    `localized_text` is rejected outright: it would need a `LocalizedString`,
-    not a bare string, the same mismatch `image_uri` has. No current family
-    declares one, so this raises instead of silently mis-mapping it, in the
-    spirit of the transit ruling in `_list_override`.
+    The per-kind conversion (`image_uri` wrapped as
+    `Image(sourceUri=ImageUri(uri=...))`, `localized_text` rejected outright,
+    everything else written through as-is) is shared with
+    `object_json._head_payload` via `_head_fields.convert_head_value` — it is
+    identical regardless of which scope is being copied. Only this filter, by
+    scope, differs between the two, and that stays local to each function
+    rather than becoming a flag argument on a shared one.
     """
     fields_by_key = {field.key: field for field in descriptor.head_fields}
     payload: dict[str, Any] = {}
@@ -171,14 +167,9 @@ def _head_payload(descriptor: FamilyDescriptor, head: dict[str, str]) -> dict[st
         field = fields_by_key.get(key)
         if field is None or field.scope != "class":
             continue
-        if field.kind == "image_uri":
-            if value:
-                payload[key] = Image(sourceUri=ImageUri(uri=value))
-            continue
-        if field.kind == "localized_text":
-            message = "localized head fields are not supported yet"
-            raise NotImplementedError(message)
-        payload[key] = value
+        converted = convert_head_value(field, value)
+        if converted is not None:
+            payload[key] = converted
     return payload
 
 
