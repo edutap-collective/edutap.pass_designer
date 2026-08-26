@@ -9,11 +9,17 @@ judging a layout.
 The seed is fixed so that comparing two layouts is not confounded by a
 changing name.
 
-All five locales below were checked to resolve `name_male`, `name_female` and
-`name_nonbinary` on a single-locale `Faker` instance (Faker 40.37.0). A locale
-that failed this check would be dropped rather than falling back to a
-gendered provider — a persona that lies about its own gender is worse than
-one locale fewer.
+Given and family names are drawn from Faker's dedicated part providers
+(`first_name_*` / `last_name_*`), not by splitting a composed `name_*`
+string: `name_*` routinely wraps the name in academic titles and degree
+suffixes for `de_DE` and `tr_TR` ("Prof. Liselotte Bien B.Sc."), and a
+whitespace split then misattributes the suffix as the family name. All six
+part providers were checked to resolve on a single-locale `Faker` instance
+for all five locales below (Faker 40.37.0) before this table was trusted —
+see the task report for the per-locale results. A locale missing a provider
+would be dropped rather than falling back to a composed name or a different
+gender's provider — a persona that lies about its own gender or borrows
+someone else's name part is worse than one locale fewer.
 """
 
 from collections.abc import Iterable, Sequence
@@ -40,6 +46,11 @@ PERSONA_RECIPES: Sequence[tuple[str, str, str, str, bool]] = (
 #: chain has something to fall back from.
 _SPARSE_EMPTY = {"person.date_of_birth", "affiliation.unit", "card.valid_until"}
 
+#: Locales whose convention puts the family name first, with no separator
+#: (Chinese: 姓 before 名, joined directly). `_compose_display_name` uses
+#: this instead of the Western `given family` order.
+FAMILY_NAME_FIRST = frozenset({"zh_CN"})
+
 
 class Persona(BaseModel):
     """One preview person: coherent, fictional, reproducible."""
@@ -52,28 +63,39 @@ class Persona(BaseModel):
 
 
 def _name(faker: Faker, gender: str) -> tuple[str, str]:
-    """Return `(given, family)` for the persona's gender."""
+    """Return `(given, family)` for the persona's gender.
+
+    Drawn from Faker's dedicated part providers, never from splitting a
+    composed `name_*` string — see the module docstring for why.
+    """
     if gender == "female":
-        full = faker.name_female()
-    elif gender == "male":
-        full = faker.name_male()
-    else:
-        full = faker.name_nonbinary()
-    parts = full.split()
-    if len(parts) == 1:
-        return parts[0], parts[0]
-    return " ".join(parts[:-1]), parts[-1]
+        return faker.first_name_female(), faker.last_name_female()
+    if gender == "male":
+        return faker.first_name_male(), faker.last_name_male()
+    return faker.first_name_nonbinary(), faker.last_name_nonbinary()
+
+
+def _compose_display_name(locale: str, given: str, family: str) -> str:
+    """Join given and family name by locale convention."""
+    if locale in FAMILY_NAME_FIRST:
+        return f"{family}{given}"
+    return f"{given} {family}"
 
 
 def _value(
-    faker: Faker, provider: str | None, field: CatalogueField, given: str, family: str
+    faker: Faker,
+    provider: str | None,
+    field: CatalogueField,
+    given: str,
+    family: str,
+    display_name: str,
 ) -> str:
     if provider == "given_name":
         return given
     if provider == "family_name":
         return family
     if provider == "display_name":
-        return f"{given} {family}"
+        return display_name
     if provider == "date_of_birth":
         return faker.date_of_birth(minimum_age=18, maximum_age=70).strftime("%d.%m.%Y")
     if provider == "photo_uri":
@@ -106,13 +128,19 @@ def build_personas(fields: Iterable[CatalogueField]) -> list[Persona]:
         faker = Faker(locale)
         faker.seed_instance(SEED + offset)
         given, family = _name(faker, gender)
+        display_name = _compose_display_name(locale, given, family)
         values: dict[str, str] = {}
         for field in catalogue:
             if sparse and field.key in _SPARSE_EMPTY:
                 values[field.key] = ""
                 continue
             values[field.key] = _value(
-                faker, PROVIDER_BY_FIELD.get(field.key), field, given, family
+                faker,
+                PROVIDER_BY_FIELD.get(field.key),
+                field,
+                given,
+                family,
+                display_name,
             )
         personas.append(
             Persona(

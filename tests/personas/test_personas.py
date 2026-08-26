@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from edutap.pass_designer.personas.catalogue import catalogue_types, load_catalogue
-from edutap.pass_designer.personas.generator import build_personas
+from edutap.pass_designer.personas.generator import FAMILY_NAME_FIRST, build_personas
 
 CATALOGUE_PATH = Path("data/catalogue.example.json")
 
@@ -30,13 +30,33 @@ def test_generation_is_reproducible() -> None:
     assert [p.values for p in first] == [p.values for p in second]
 
 
-def test_a_persona_is_internally_coherent() -> None:
-    persona = build_personas(load_catalogue(CATALOGUE_PATH))[0]
+def test_every_persona_is_internally_coherent() -> None:
+    """The name parts must be real name parts, not titles or degrees.
 
-    assert persona.values["person.display_name"].startswith(
-        persona.values["person.given_name"]
-    )
-    assert persona.values["person.family_name"] in persona.values["person.display_name"]
+    Faker's composed `name_*` providers wrap German and Turkish names in
+    academic titles and degree suffixes ("Prof. Liselotte Bien B.Sc."); a
+    whitespace split of that string misattributes the suffix as the family
+    name. Checking every persona, not just one, is what catches this — a
+    single persona can look fine by chance.
+    """
+    personas = build_personas(load_catalogue(CATALOGUE_PATH))
+
+    for persona in personas:
+        given = persona.values["person.given_name"]
+        family = persona.values["person.family_name"]
+        display = persona.values["person.display_name"]
+
+        assert given, persona.persona_id
+        assert family, persona.persona_id
+        assert given != family, persona.persona_id
+        assert "." not in given, persona.persona_id
+        assert "." not in family, persona.persona_id
+        assert given in display, persona.persona_id
+        assert family in display, persona.persona_id
+
+        if persona.locale in FAMILY_NAME_FIRST:
+            assert " " not in display, persona.persona_id
+            assert display == f"{family}{given}", persona.persona_id
 
 
 def test_one_persona_has_deliberately_empty_fields() -> None:
