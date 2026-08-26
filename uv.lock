@@ -222,6 +222,7 @@ name = "edutap-pass-designer"
 version = "0.1.0.dev0"
 source = { editable = "." }
 dependencies = [
+    { name = "anyio" },
     { name = "edutap-wallet-google" },
     { name = "faker" },
     { name = "fastapi" },
@@ -250,6 +251,7 @@ typecheck = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anyio", specifier = ">=4.6" },
     { name = "edutap-wallet-google", specifier = "==3.0.0b2" },
     { name = "faker", specifier = ">=40.0" },
     { name = "fastapi", specifier = ">=0.115" },

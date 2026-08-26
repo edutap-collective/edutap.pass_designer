@@ -116,3 +116,45 @@ async def test_import_returns_a_draft(client: AsyncClient) -> None:
 
     assert response.status_code == 200
     assert response.json()["text_modules"][0]["bound"] is True
+
+
+def _resolve(schema: dict, node: dict) -> dict:
+    """Follow one `$ref` into `schema["components"]["schemas"]`, if present."""
+    if "$ref" in node:
+        name = node["$ref"].rsplit("/", maxsplit=1)[-1]
+        return schema["components"]["schemas"][name]
+    return node
+
+
+async def test_openapi_documents_the_export_findings_and_scoped_head_fields(
+    client: AsyncClient,
+) -> None:
+    """Guard against the OpenAPI schema drifting back to generic shapes.
+
+    A React client generated from `/openapi.json` needs the *real* error
+    shape for `/export`'s `422` (a list of findings, not FastAPI's generic
+    `HTTPValidationError`) and the *real* field shape for `/families` (named
+    properties, `scope` included) — not `dict[str, Any]` for either.
+    """
+    response = await client.get("/openapi.json")
+    assert response.status_code == 200
+    schema = response.json()
+
+    export_422 = schema["paths"]["/designer/v1/export"]["post"]["responses"]["422"]
+    export_error_schema = _resolve(
+        schema, export_422["content"]["application/json"]["schema"]
+    )
+    findings_schema = _resolve(schema, export_error_schema["properties"]["detail"])
+    finding_item_schema = _resolve(schema, findings_schema["items"])
+    assert set(finding_item_schema["properties"]) >= {"severity", "message", "location"}
+
+    families_200 = schema["paths"]["/designer/v1/families"]["get"]["responses"]["200"]
+    families_schema = _resolve(
+        schema, families_200["content"]["application/json"]["schema"]
+    )
+    family_item_schema = _resolve(schema, families_schema["items"])
+    head_fields_schema = _resolve(
+        schema, family_item_schema["properties"]["head_fields"]
+    )
+    head_field_item_schema = _resolve(schema, head_fields_schema["items"])
+    assert "scope" in head_field_item_schema["properties"]

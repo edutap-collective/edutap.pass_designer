@@ -2,6 +2,7 @@
 
 from typing import Any
 
+import anyio.to_thread
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -10,9 +11,10 @@ from ...exporter.class_json import build_class
 from ...exporter.mappings import build_mappings
 from ...exporter.object_json import build_object
 from ...importer.reader import read
-from ...personas.catalogue import catalogue_types, load_catalogue
+from ...personas.catalogue import CatalogueField, catalogue_types, load_catalogue
 from ...personas.generator import Persona, build_personas
 from ...platforms.google import families
+from ...platforms.google.families import HeadField
 from ...settings import Settings, get_settings
 from ...validation import Finding, validate
 
@@ -47,6 +49,24 @@ class ExportResponse(BaseModel):
     mappings: dict[str, Any]
 
 
+class ExportErrorResponse(BaseModel):
+    """Body of `/export`'s `422`: the findings that blocked the export.
+
+    Not FastAPI's generic `HTTPValidationError` — the request body itself was
+    well-formed, it is the *draft* that carries errors — so this is declared
+    explicitly via `responses=` on the route rather than left to the default,
+    which would otherwise mislead a client generated from the OpenAPI schema.
+    """
+
+    detail: list[Finding]
+
+
+class ImportErrorResponse(BaseModel):
+    """Body of `/import`'s `400`: an unknown family, as plain text."""
+
+    detail: str
+
+
 class ImportRequest(BaseModel):
     """Body of `POST /import`."""
 
@@ -55,20 +75,38 @@ class ImportRequest(BaseModel):
     object_json: dict[str, Any]
 
 
-def _catalogue(settings: Settings) -> dict[str, str]:
-    return catalogue_types(load_catalogue(settings.catalogue_path))
+class FamilyResponse(BaseModel):
+    """Body of one entry in the `/families` response."""
+
+    family_id: str
+    label: str
+    head_fields: list[HeadField]
+    required_on_create: list[str]
+
+
+async def _load_catalogue(settings: Settings) -> list[CatalogueField]:
+    """Read the catalogue file off a worker thread.
+
+    `Path.read_text()` inside `load_catalogue` is blocking I/O; the repository
+    is async-first, so it does not belong directly in an `async def` handler.
+    """
+    return await anyio.to_thread.run_sync(load_catalogue, settings.catalogue_path)
+
+
+async def _catalogue(settings: Settings) -> dict[str, str]:
+    return catalogue_types(await _load_catalogue(settings))
 
 
 @router.get("/families")
-async def list_families() -> list[dict[str, Any]]:
+async def list_families() -> list[FamilyResponse]:
     """Return every pass family, with the head fields its form needs."""
     return [
-        {
-            "family_id": descriptor.family_id,
-            "label": descriptor.label,
-            "head_fields": [field.model_dump() for field in descriptor.head_fields],
-            "required_on_create": sorted(descriptor.required_on_create),
-        }
+        FamilyResponse(
+            family_id=descriptor.family_id,
+            label=descriptor.label,
+            head_fields=descriptor.head_fields,
+            required_on_create=sorted(descriptor.required_on_create),
+        )
         for descriptor in families.all_families()
     ]
 
@@ -78,7 +116,7 @@ async def list_personas(
     settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> list[Persona]:
     """Return the preview personas, generated from the loaded catalogue."""
-    return build_personas(load_catalogue(settings.catalogue_path))
+    return build_personas(await _load_catalogue(settings))
 
 
 @router.post("/validate")
@@ -87,16 +125,17 @@ async def validate_draft(
     settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> ValidateResponse:
     """Return every problem with a draft, without exporting anything."""
-    return ValidateResponse(findings=validate(request.draft, _catalogue(settings)))
+    catalogue = await _catalogue(settings)
+    return ValidateResponse(findings=validate(request.draft, catalogue))
 
 
-@router.post("/export")
+@router.post("/export", responses={422: {"model": ExportErrorResponse}})
 async def export_draft(
     request: ExportRequest,
     settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> ExportResponse:
     """Return the three artefacts, refusing a draft that carries errors."""
-    catalogue = _catalogue(settings)
+    catalogue = await _catalogue(settings)
     findings = validate(request.draft, catalogue)
     errors = [finding for finding in findings if finding.severity == "error"]
     if errors:
@@ -114,7 +153,7 @@ async def export_draft(
     )
 
 
-@router.post("/import")
+@router.post("/import", responses={400: {"model": ImportErrorResponse}})
 async def import_artefacts(request: ImportRequest) -> Draft:
     """Return the draft that would export to the given class and object."""
     try:

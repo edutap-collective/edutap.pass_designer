@@ -22,7 +22,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 _REPO_ROOT_CATALOGUE = (
     Path(__file__).resolve().parents[3] / "data" / "catalogue.example.json"
 )
-_DEFAULT_CATALOGUE_PATH = (
+DEFAULT_CATALOGUE_PATH = (
     _REPO_ROOT_CATALOGUE
     if _REPO_ROOT_CATALOGUE.exists()
     else Path("data/catalogue.example.json")
@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="PASS_DESIGNER_")
 
-    catalogue_path: Path = _DEFAULT_CATALOGUE_PATH
+    catalogue_path: Path = DEFAULT_CATALOGUE_PATH
     root_path: str = ""
     """Path prefix when served behind Traefik, e.g. `/portale/pass-designer`."""
 

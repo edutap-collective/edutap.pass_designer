@@ -1,11 +1,14 @@
 """Personas are coherent, reproducible and never real."""
 
-from pathlib import Path
-
 from edutap.pass_designer.personas.catalogue import catalogue_types, load_catalogue
 from edutap.pass_designer.personas.generator import FAMILY_NAME_FIRST, build_personas
+from edutap.pass_designer.settings import DEFAULT_CATALOGUE_PATH
 
-CATALOGUE_PATH = Path("data/catalogue.example.json")
+# Reuses the same repo-root-anchored default `settings.py` resolves for the
+# HTTP service, rather than a second, independently bug-prone relative path —
+# see that module for why a bare `Path("data/catalogue.example.json")` only
+# resolves when the process happens to run from the repository root.
+CATALOGUE_PATH = DEFAULT_CATALOGUE_PATH
 
 
 def test_the_example_catalogue_loads() -> None:
