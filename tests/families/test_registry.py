@@ -1,6 +1,7 @@
 """Descriptors are the only place a family differs from any other."""
 
 import pytest
+from pydantic import ValidationError
 
 from edutap.pass_designer.platforms.google import families
 
@@ -18,6 +19,7 @@ def test_loyalty_declares_what_google_requires_beyond_pydantic() -> None:
 
     assert "issuerName" in descriptor.required_on_create
     assert "programName" in descriptor.required_on_create
+    assert "programLogo" in descriptor.required_on_create
     assert "reviewStatus" in descriptor.required_on_create
 
 
@@ -45,3 +47,18 @@ def test_loyalty_head_fields_are_scoped_to_the_side_that_declares_them() -> None
     assert by_key["accountName"].scope == "object"
     assert by_key["programName"].scope == "class"
     assert by_key["issuerName"].scope == "class"
+
+
+def test_class_model_must_be_a_pydantic_model() -> None:
+    class NotAPydanticModel:
+        """A plain class, not a `pydantic.BaseModel` subclass."""
+
+    with pytest.raises(ValidationError):
+        families.FamilyDescriptor(
+            family_id="bogus",
+            label="Bogus",
+            class_model=NotAPydanticModel,
+            object_model=NotAPydanticModel,
+            head_fields=[],
+            required_on_create=frozenset(),
+        )

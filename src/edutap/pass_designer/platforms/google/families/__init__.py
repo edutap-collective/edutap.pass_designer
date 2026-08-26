@@ -7,7 +7,7 @@ the server validates cannot drift apart.
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 HeadFieldKind = Literal["text", "localized_text", "image_uri", "colour", "enum"]
 
@@ -27,12 +27,10 @@ class HeadField(BaseModel):
 class FamilyDescriptor(BaseModel):
     """Everything that is specific to one pass family."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     family_id: str
     label: str
-    class_model: type
-    object_model: type
+    class_model: type[BaseModel]
+    object_model: type[BaseModel]
     head_fields: list[HeadField]
     required_on_create: frozenset[str]
     """Fields Google demands on creation, beyond what Pydantic enforces."""

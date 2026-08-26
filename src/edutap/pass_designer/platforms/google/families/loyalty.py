@@ -2,7 +2,11 @@
 
 `required_on_create` is copied from Google's REST reference, not derived from
 the model: the model requires only `id`, while the API also insists on
-`issuerName`, `programName` and `reviewStatus`.
+`issuerName`, `programName`, `programLogo` and `reviewStatus`. `id` is left
+out of this set — it is not a head field, it is supplied separately by the
+exporter as the class identifier, and Pydantic already requires it. This set
+is hand-copied from a reference that changes without notice; re-check it
+against the source before trusting it blindly.
 See https://developers.google.com/wallet/retail/loyalty-cards/rest/v1/loyaltyclass
 
 `accountName` and `accountId` are scoped to the pass object: they live on
@@ -28,7 +32,9 @@ DESCRIPTOR = register(
             HeadField(
                 key="programName", label="Program name", kind="text", required=True
             ),
-            HeadField(key="programLogo", label="Program logo", kind="image_uri"),
+            HeadField(
+                key="programLogo", label="Program logo", kind="image_uri", required=True
+            ),
             HeadField(key="wideProgramLogo", label="Wide logo", kind="image_uri"),
             HeadField(key="heroImage", label="Hero image", kind="image_uri"),
             HeadField(key="hexBackgroundColor", label="Background", kind="colour"),
@@ -39,6 +45,8 @@ DESCRIPTOR = register(
             ),
             HeadField(key="accountId", label="Account ID", kind="text", scope="object"),
         ],
-        required_on_create=frozenset({"issuerName", "programName", "reviewStatus"}),
+        required_on_create=frozenset(
+            {"issuerName", "programName", "programLogo", "reviewStatus"}
+        ),
     )
 )
