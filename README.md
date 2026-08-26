@@ -14,8 +14,20 @@ to make a template version out of them:
 * `mappings.json` — the binding table, in the shape `edutap.pass_builder`
   already defines.
 
-**Status: in design.** Nothing is implemented yet. The agreed design is
+**Status: the backend is implemented.** A FastAPI service, a container and
+a test suite of over 90 tests cover the draft model, the exporter, the
+importer and the HTTP surface. The React editor that will sit in front of
+it is the next plan. The agreed design is
 [`docs/superpowers/specs/2026-08-26-pass-designer-design.md`](docs/superpowers/specs/2026-08-26-pass-designer-design.md).
+
+## Running it
+
+See [`docs/how-to/run-the-service.md`](docs/how-to/run-the-service.md) for
+running the service in a container or directly with `uvicorn`, and for the
+routes it exposes.
+
+For development: `make test-local` runs the test suite, and `make lint`
+runs `ruff` and `ty`.
 
 ## What it is deliberately not
 

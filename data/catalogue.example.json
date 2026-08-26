@@ -1,0 +1,14 @@
+{
+  "fields": [
+    {"key": "person.display_name", "value_type": "text", "label": "Display name", "required": true, "description": "The name shown on the pass"},
+    {"key": "person.given_name", "value_type": "text", "label": "Given name", "required": false, "description": null},
+    {"key": "person.family_name", "value_type": "text", "label": "Family name", "required": false, "description": null},
+    {"key": "person.date_of_birth", "value_type": "date", "label": "Date of birth", "required": false, "description": null},
+    {"key": "person.photo", "value_type": "image", "label": "Photograph", "required": false, "description": "URL of the active photo version"},
+    {"key": "affiliation.primary", "value_type": "text", "label": "Primary affiliation", "required": false, "description": null},
+    {"key": "affiliation.unit", "value_type": "text", "label": "Organisational unit", "required": false, "description": null},
+    {"key": "card.number", "value_type": "text", "label": "Card number", "required": true, "description": null},
+    {"key": "card.valid_until", "value_type": "date", "label": "Valid until", "required": false, "description": null},
+    {"key": "card.homepage", "value_type": "uri", "label": "Homepage", "required": false, "description": null}
+  ]
+}
