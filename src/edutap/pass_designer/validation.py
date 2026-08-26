@@ -29,6 +29,17 @@ class Finding(BaseModel):
     location: str
 
 
+# Every surface of `Draft` that can carry a `Line` (and therefore a
+# `fieldPath`) must be visited here. A surface left out is a silent Google
+# defect with no way to notice it except reading this list against the
+# model. As of this writing that is:
+#   - front_rows        (Row -> Cell -> first/second)
+#   - back_items         (Cell -> first/second)
+#   - list_view          (first_row, second_row; first_row may be a
+#                         TransitOption instead of a Line)
+#   - barcode_section     (first_top, second_top, first_bottom)
+# When `Draft` grows a new field that can hold a `Line`, `_lines` grows with
+# it.
 def _lines(draft: Draft) -> list[tuple[str, Line]]:
     found: list[tuple[str, Line]] = []
 
@@ -48,6 +59,14 @@ def _lines(draft: Draft) -> list[tuple[str, Line]]:
     ):
         if isinstance(line, Line):
             found.append((name, line))
+    if draft.barcode_section is not None:
+        for name, line in (
+            ("barcode/first top", draft.barcode_section.first_top),
+            ("barcode/second top", draft.barcode_section.second_top),
+            ("barcode/first bottom", draft.barcode_section.first_bottom),
+        ):
+            if line is not None:
+                found.append((name, line))
     return found
 
 

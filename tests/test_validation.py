@@ -1,6 +1,7 @@
 """Validation catches what Google would swallow in silence."""
 
 from edutap.pass_designer.draft.models import (
+    BarcodeSection,
     Cell,
     Draft,
     FieldRef,
@@ -100,3 +101,54 @@ def test_a_lone_dollar_sign_in_a_constant_is_an_error() -> None:
     assert any(
         f.severity == "error" and "$" in f.message for f in validate(draft, CATALOGUE)
     )
+
+
+def test_a_broken_field_path_in_barcode_first_top_is_an_error() -> None:
+    draft = _draft(barcode_section=BarcodeSection(first_top=_text("ghost")))
+
+    findings = validate(draft, CATALOGUE)
+
+    assert any(f.severity == "error" and "ghost" in f.message for f in findings)
+
+
+def test_a_broken_field_path_in_barcode_second_top_is_an_error() -> None:
+    draft = _draft(barcode_section=BarcodeSection(second_top=_text("ghost")))
+
+    findings = validate(draft, CATALOGUE)
+
+    assert any(f.severity == "error" and "ghost" in f.message for f in findings)
+
+
+def test_a_broken_field_path_in_barcode_first_bottom_is_an_error() -> None:
+    draft = _draft(barcode_section=BarcodeSection(first_bottom=_text("ghost")))
+
+    findings = validate(draft, CATALOGUE)
+
+    assert any(f.severity == "error" and "ghost" in f.message for f in findings)
+
+
+def test_a_resolvable_field_path_in_barcode_first_top_produces_nothing() -> None:
+    draft = _draft(
+        barcode_section=BarcodeSection(first_top=_text("name")),
+        text_modules=[TextModuleDraft(module_id="name", value="x")],
+    )
+
+    assert [f for f in validate(draft, CATALOGUE) if f.severity == "error"] == []
+
+
+def test_a_resolvable_field_path_in_barcode_second_top_produces_nothing() -> None:
+    draft = _draft(
+        barcode_section=BarcodeSection(second_top=_text("name")),
+        text_modules=[TextModuleDraft(module_id="name", value="x")],
+    )
+
+    assert [f for f in validate(draft, CATALOGUE) if f.severity == "error"] == []
+
+
+def test_a_resolvable_field_path_in_barcode_first_bottom_produces_nothing() -> None:
+    draft = _draft(
+        barcode_section=BarcodeSection(first_bottom=_text("name")),
+        text_modules=[TextModuleDraft(module_id="name", value="x")],
+    )
+
+    assert [f for f in validate(draft, CATALOGUE) if f.severity == "error"] == []
