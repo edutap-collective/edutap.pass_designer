@@ -159,6 +159,11 @@ def _head_payload(descriptor: FamilyDescriptor, head: dict[str, str]) -> dict[st
     value is skipped rather than wrapped, because `ImageUri.uri` is a
     required, validated URL — an empty string would fail there, not signal
     "no image" the way it does for a plain text field.
+
+    `localized_text` is rejected outright: it would need a `LocalizedString`,
+    not a bare string, the same mismatch `image_uri` has. No current family
+    declares one, so this raises instead of silently mis-mapping it, in the
+    spirit of the transit ruling in `_list_override`.
     """
     fields_by_key = {field.key: field for field in descriptor.head_fields}
     payload: dict[str, Any] = {}
@@ -170,6 +175,9 @@ def _head_payload(descriptor: FamilyDescriptor, head: dict[str, str]) -> dict[st
             if value:
                 payload[key] = Image(sourceUri=ImageUri(uri=value))
             continue
+        if field.kind == "localized_text":
+            message = "localized head fields are not supported yet"
+            raise NotImplementedError(message)
         payload[key] = value
     return payload
 
@@ -193,4 +201,14 @@ def build_class(draft: Draft, class_id: str) -> dict[str, Any]:
 
     wallet_class = descriptor.class_model(**payload)
     exported = wallet_class.model_dump(exclude_none=True, mode="json")
-    return {**draft.unmapped.get("class", {}), **exported}
+
+    # `exported` is a full model_dump, so it always carries a value for every
+    # field with a non-None default (e.g. `reviewStatus`), whether or not this
+    # function ever set it. Letting `exported` win unconditionally would
+    # silently overwrite a preserved value with a default nobody chose. So
+    # `exported` wins only for keys this function actually decided (`payload`);
+    # for anything else, a preserved value in `draft.unmapped["class"]` wins,
+    # defaults included.
+    preserved = draft.unmapped.get("class", {})
+    carried = {key: value for key, value in preserved.items() if key not in payload}
+    return {**exported, **carried}

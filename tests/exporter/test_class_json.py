@@ -13,7 +13,9 @@ from edutap.pass_designer.draft.models import (
     Row,
     TransitOption,
 )
-from edutap.pass_designer.exporter.class_json import build_class
+from edutap.pass_designer.exporter.class_json import _head_payload, build_class
+from edutap.pass_designer.platforms.google.families import HeadField
+from edutap.pass_designer.platforms.google.families import get as get_family
 
 CLASS_ID = "3388000000022141777.library.demo"
 
@@ -196,3 +198,58 @@ def test_a_transit_option_in_the_list_view_raises() -> None:
 
     with pytest.raises(NotImplementedError):
         build_class(draft, CLASS_ID)
+
+
+# --- unmapped["class"] survives export; the exporter's own decisions still win ---
+
+
+def test_a_preserved_unmapped_value_survives_the_export_unchanged() -> None:
+    """A preserved `unmapped["class"]` value beats the model's own default.
+
+    `reviewStatus` is not a head field; `build_class` never sets it, so the
+    only plausible source of a real value is `unmapped` — an importer
+    carrying it forward from an already-approved class. A full `model_dump`
+    would otherwise always report the model's own default instead.
+    """
+    draft = _draft(unmapped={"class": {"reviewStatus": "underReview"}})
+
+    result = build_class(draft, CLASS_ID)
+
+    assert result["reviewStatus"] == "underReview"
+
+
+def test_a_key_the_exporter_sets_is_not_overridden_by_a_stale_unmapped_copy() -> None:
+    draft = _draft(
+        head={
+            "issuerName": "Example University",
+            "programName": "Library",
+            "programLogo": "https://example.org/logo.png",
+        },
+        unmapped={
+            "class": {
+                "programLogo": {
+                    "sourceUri": {"uri": "https://stale.example.org/old.png"}
+                }
+            }
+        },
+    )
+
+    result = build_class(draft, CLASS_ID)
+
+    assert result["programLogo"]["sourceUri"]["uri"] == "https://example.org/logo.png"
+
+
+# --- localized_text head fields are rejected outright, not silently mis-mapped ---
+
+
+def test_a_localized_text_head_field_raises() -> None:
+    """Guard the day a family declares a `localized_text` head field.
+
+    No current family declares one, so this exercises `_head_payload`
+    directly with a one-off descriptor rather than through `build_class`.
+    """
+    field = HeadField(key="programName", label="Program name", kind="localized_text")
+    descriptor = get_family("loyalty").model_copy(update={"head_fields": [field]})
+
+    with pytest.raises(NotImplementedError):
+        _head_payload(descriptor, {"programName": "Library"})
