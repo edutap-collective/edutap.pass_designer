@@ -4,6 +4,7 @@ from edutap.pass_designer.placeholders import (
     check_dollar_signs,
     is_placeholder,
     placeholder_for,
+    resolve,
     scan,
     source_field,
 )
@@ -49,3 +50,76 @@ def test_scan_reports_a_json_pointer_for_every_placeholder() -> None:
 
 def test_scan_ignores_dictionary_keys() -> None:
     assert scan({"${not.a.field}": "value"}) == []
+
+
+def test_malformed_placeholder_with_nested_dollar() -> None:
+    problems = check_dollar_signs("${bad ${good}")
+
+    assert len(problems) == 1
+    assert "bad ${good" in problems[0]
+    assert "field key" in problems[0].lower() or "malformed" in problems[0].lower()
+
+
+def test_malformed_placeholder_with_dollar_in_key() -> None:
+    problems = check_dollar_signs("${a$b}")
+
+    assert len(problems) == 1
+    assert "a$b" in problems[0]
+
+
+def test_single_segment_field_key_is_valid() -> None:
+    problems = check_dollar_signs("${card}")
+
+    assert problems == []
+
+
+def test_dotted_field_key_is_valid() -> None:
+    problems = check_dollar_signs("${person.display_name}")
+
+    assert problems == []
+
+
+def test_resolve_substitutes_placeholders_in_strings() -> None:
+    result = resolve("Hello ${person.name}", {"person.name": "Alice"})
+
+    assert result == "Hello Alice"
+
+
+def test_resolve_leaves_unknown_keys_untouched() -> None:
+    result = resolve("Hello ${person.name}", {"other.field": "Bob"})
+
+    assert result == "Hello ${person.name}"
+
+
+def test_resolve_converts_doubled_dollar_to_literal() -> None:
+    result = resolve("costs 5$$", {})
+
+    assert result == "costs 5$"
+
+
+def test_resolve_works_in_nested_structures() -> None:
+    document = {
+        "textModulesData": [
+            {"body": "${person.display_name}"},
+            {"body": "A constant"},
+        ]
+    }
+    values = {"person.display_name": "Ludwig Maximilian"}
+
+    result = resolve(document, values)
+
+    assert result == {
+        "textModulesData": [
+            {"body": "Ludwig Maximilian"},
+            {"body": "A constant"},
+        ]
+    }
+
+
+def test_resolve_never_substitutes_dictionary_keys() -> None:
+    document = {"${person.name}": "value"}
+    values = {"person.name": "Alice"}
+
+    result = resolve(document, values)
+
+    assert result == {"${person.name}": "value"}

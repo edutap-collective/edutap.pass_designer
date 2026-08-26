@@ -11,6 +11,7 @@ from typing import Any
 
 PLACEHOLDER_PATTERN = re.compile(r"\$\$|\$\{([^}]+)\}")
 _FULL_PLACEHOLDER = re.compile(r"^\$\{([^}]+)\}$")
+FIELD_KEY_PATTERN = re.compile(r"^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)*$")
 
 
 def placeholder_for(field_key: str) -> str:
@@ -33,7 +34,8 @@ def check_dollar_signs(text: str) -> list[str]:
     """Return a problem for every dollar sign that is neither `$$` nor `${`.
 
     A lone dollar sign is the mistake that survives every other check and
-    reaches the cardholder as a literal `$`.
+    reaches the cardholder as a literal `$`. Also validates that field keys
+    in placeholders are well-formed dotted identifiers.
     """
     problems: list[str] = []
     index = 0
@@ -47,6 +49,13 @@ def check_dollar_signs(text: str) -> list[str]:
             continue
         match = PLACEHOLDER_PATTERN.match(remainder)
         if match is not None:
+            field_key = match.group(1)
+            if not FIELD_KEY_PATTERN.match(field_key):
+                problems.append(
+                    f"malformed field key '{field_key}' in placeholder "
+                    f"at position {index} in {text!r}: field keys must be "
+                    f"dotted identifiers (e.g., 'person.display_name')"
+                )
             index += match.end()
             continue
         problems.append(
