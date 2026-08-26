@@ -6,7 +6,9 @@ from edutap.pass_designer.draft.models import (
     RedemptionSettings,
     TextModuleDraft,
 )
+from edutap.pass_designer.exporter.mappings import build_mappings
 from edutap.pass_designer.exporter.object_json import build_object
+from edutap.pass_designer.placeholders import scan
 
 CLASS_ID = "3388000000022141777.library.demo"
 OBJECT_ID = "3388000000022141777.specimen.object"
@@ -140,3 +142,70 @@ def test_a_key_the_exporter_sets_is_not_overridden_by_a_stale_unmapped_copy() ->
     result = build_object(draft, OBJECT_ID, CLASS_ID)
 
     assert result["accountName"] == "Jane Doe"
+
+
+# --- Critical fix: a bound image module must not crash on the strict ImageUri ---
+
+
+def test_a_bound_image_module_becomes_a_placeholder() -> None:
+    """A bound image module must not crash on the strict upstream `ImageUri`.
+
+    `ImageUri.uri` is a strict `AnyUrl` upstream, so a `${field}` placeholder
+    cannot be constructed through it directly; the exported object must still
+    end up carrying the placeholder.
+    """
+    draft = _draft(
+        image_modules=[
+            ImageModuleDraft(module_id="photo", uri="person.photo", bound=True)
+        ]
+    )
+
+    modules = build_object(draft, OBJECT_ID, CLASS_ID)["imageModulesData"]
+
+    assert modules[0]["mainImage"]["sourceUri"]["uri"] == "${person.photo}"
+
+
+def test_a_bound_image_placeholder_is_found_by_scan() -> None:
+    draft = _draft(
+        image_modules=[
+            ImageModuleDraft(module_id="photo", uri="person.photo", bound=True)
+        ]
+    )
+
+    result = build_object(draft, OBJECT_ID, CLASS_ID)
+
+    assert scan(result) == [
+        ("/imageModulesData/0/mainImage/sourceUri/uri", "person.photo")
+    ]
+
+
+def test_a_bound_image_placeholder_produces_one_image_mapping_rule() -> None:
+    draft = _draft(
+        image_modules=[
+            ImageModuleDraft(module_id="photo", uri="person.photo", bound=True)
+        ]
+    )
+    result = build_object(draft, OBJECT_ID, CLASS_ID)
+
+    rules = build_mappings(result, {"person.photo": "image"})["rules"]
+
+    assert len(rules) == 1
+    assert rules[0]["source_field"] == "person.photo"
+    assert rules[0]["value_type"] == "image"
+    assert rules[0]["target"] == "/imageModulesData/0/mainImage/sourceUri/uri"
+
+
+def test_a_mix_of_bound_and_unbound_image_modules_land_correctly() -> None:
+    draft = _draft(
+        image_modules=[
+            ImageModuleDraft(module_id="photo", uri="person.photo", bound=True),
+            ImageModuleDraft(
+                module_id="logo", uri="https://example.org/logo.png", bound=False
+            ),
+        ]
+    )
+
+    modules = build_object(draft, OBJECT_ID, CLASS_ID)["imageModulesData"]
+
+    assert modules[0]["mainImage"]["sourceUri"]["uri"] == "${person.photo}"
+    assert modules[1]["mainImage"]["sourceUri"]["uri"] == "https://example.org/logo.png"
