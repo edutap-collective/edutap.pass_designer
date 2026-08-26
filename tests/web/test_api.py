@@ -1,6 +1,8 @@
 """The HTTP surface the editor will consume."""
 
+import json
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -97,6 +99,165 @@ async def test_export_refuses_a_draft_with_errors(client: AsyncClient) -> None:
     assert response.status_code == 422
 
 
+# --- Fix 1: ordinary user input must not 500. Each row of the review's table
+# is reproduced here: `/validate` reports zero errors, and `/export` answers
+# 422 with a findings list instead of a bare 500. ---
+
+
+async def test_export_refuses_a_transit_option_in_the_list_view(
+    client: AsyncClient,
+) -> None:
+    draft = {**DRAFT, "list_view": {"first_row": {"option": "TWO_LEGS"}}}
+
+    validated = await client.post("/designer/v1/validate", json={"draft": draft})
+    assert validated.json()["findings"] == []
+
+    response = await client.post(
+        "/designer/v1/export",
+        json={"draft": draft, "class_id": "1.a", "object_id": "1.b"},
+    )
+
+    assert response.status_code == 422
+    assert response.headers["content-type"].startswith("application/json")
+    findings = response.json()["detail"]
+    assert findings
+    assert all(f["severity"] == "error" for f in findings)
+
+
+async def test_export_refuses_a_non_url_image_head_field(client: AsyncClient) -> None:
+    draft = {**DRAFT, "head": {**DRAFT["head"], "programLogo": "not a url"}}
+
+    validated = await client.post("/designer/v1/validate", json={"draft": draft})
+    assert validated.json()["findings"] == []
+
+    response = await client.post(
+        "/designer/v1/export",
+        json={"draft": draft, "class_id": "1.a", "object_id": "1.b"},
+    )
+
+    assert response.status_code == 422
+    findings = response.json()["detail"]
+    assert findings
+    assert any("not a url" in f["message"] for f in findings)
+
+
+async def test_export_refuses_a_placeholder_in_an_image_head_field(
+    client: AsyncClient,
+) -> None:
+    draft = {**DRAFT, "head": {**DRAFT["head"], "heroImage": "${person.photo}"}}
+
+    validated = await client.post("/designer/v1/validate", json={"draft": draft})
+    assert validated.json()["findings"] == []
+
+    response = await client.post(
+        "/designer/v1/export",
+        json={"draft": draft, "class_id": "1.a", "object_id": "1.b"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"]
+
+
+async def test_export_refuses_an_unknown_barcode_type(client: AsyncClient) -> None:
+    draft = {**DRAFT, "redemption": {"barcode_type": "NOT_A_TYPE"}}
+
+    validated = await client.post("/designer/v1/validate", json={"draft": draft})
+    assert validated.json()["findings"] == []
+
+    response = await client.post(
+        "/designer/v1/export",
+        json={"draft": draft, "class_id": "1.a", "object_id": "1.b"},
+    )
+
+    assert response.status_code == 422
+    findings = response.json()["detail"]
+    assert findings
+    assert any("NOT_A_TYPE" in f["message"] for f in findings)
+
+
+async def test_export_refuses_a_malformed_unbound_image_uri(
+    client: AsyncClient,
+) -> None:
+    draft = {
+        **DRAFT,
+        "image_modules": [{"module_id": "photo", "uri": "not a uri", "bound": False}],
+    }
+
+    validated = await client.post("/designer/v1/validate", json={"draft": draft})
+    assert validated.json()["findings"] == []
+
+    response = await client.post(
+        "/designer/v1/export",
+        json={"draft": draft, "class_id": "1.a", "object_id": "1.b"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"]
+
+
+# --- Fix 2: an unknown (or empty) pass family answers 400 on every route
+# that takes a family, not just `/import`. ---
+
+
+async def test_validate_refuses_an_unknown_family(client: AsyncClient) -> None:
+    draft = {**DRAFT, "family": "generic"}
+
+    response = await client.post("/designer/v1/validate", json={"draft": draft})
+
+    assert response.status_code == 400
+    assert "generic" in response.json()["detail"]
+
+
+async def test_validate_refuses_an_empty_family(client: AsyncClient) -> None:
+    draft = {**DRAFT, "family": ""}
+
+    response = await client.post("/designer/v1/validate", json={"draft": draft})
+
+    assert response.status_code == 400
+
+
+async def test_export_refuses_an_unknown_family(client: AsyncClient) -> None:
+    draft = {**DRAFT, "family": "generic"}
+
+    response = await client.post(
+        "/designer/v1/export",
+        json={"draft": draft, "class_id": "1.a", "object_id": "1.b"},
+    )
+
+    assert response.status_code == 400
+    assert "generic" in response.json()["detail"]
+
+
+async def test_export_refuses_an_empty_family(client: AsyncClient) -> None:
+    draft = {**DRAFT, "family": ""}
+
+    response = await client.post(
+        "/designer/v1/export",
+        json={"draft": draft, "class_id": "1.a", "object_id": "1.b"},
+    )
+
+    assert response.status_code == 400
+
+
+async def test_import_refuses_an_unknown_family(client: AsyncClient) -> None:
+    response = await client.post(
+        "/designer/v1/import",
+        json={"family": "generic", "class_json": {}, "object_json": {}},
+    )
+
+    assert response.status_code == 400
+    assert "generic" in response.json()["detail"]
+
+
+async def test_import_refuses_an_empty_family(client: AsyncClient) -> None:
+    response = await client.post(
+        "/designer/v1/import",
+        json={"family": "", "class_json": {}, "object_json": {}},
+    )
+
+    assert response.status_code == 400
+
+
 async def test_import_returns_a_draft(client: AsyncClient) -> None:
     exported = (
         await client.post(
@@ -158,3 +319,24 @@ async def test_openapi_documents_the_export_findings_and_scoped_head_fields(
     )
     head_field_item_schema = _resolve(schema, head_fields_schema["items"])
     assert "scope" in head_field_item_schema["properties"]
+
+
+# --- Fix 3: a malformed catalogue file is a server misconfiguration, not bad
+# user input — it answers 500, but with a JSON body naming the file, never a
+# bare `text/plain` 500. ---
+
+
+async def test_a_malformed_catalogue_answers_500_with_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    catalogue_path = tmp_path / "catalogue.json"
+    catalogue_path.write_text(json.dumps({"not_fields": []}), encoding="utf-8")
+    monkeypatch.setenv("PASS_DESIGNER_CATALOGUE_PATH", str(catalogue_path))
+
+    transport = ASGITransport(app=create_app())
+    async with AsyncClient(transport=transport, base_url="http://test") as broken:
+        response = await broken.post("/designer/v1/validate", json={"draft": DRAFT})
+
+    assert response.status_code == 500
+    assert response.headers["content-type"].startswith("application/json")
+    assert str(catalogue_path) in response.json()["detail"]

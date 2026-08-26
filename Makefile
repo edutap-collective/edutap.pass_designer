@@ -13,4 +13,12 @@ test-local:
 	uv run pytest tests -m "not integration"
 
 test-integration:
-	uv run pytest tests -m integration
+	# Exit code 5 is pytest's "no tests collected" — expected while no test
+	# carries the `integration` marker yet. Anything else still fails the
+	# target.
+	uv run pytest tests -m integration; status=$$?; \
+	if [ $$status -eq 5 ]; then \
+		echo "no tests marked 'integration' — nothing to run"; \
+		exit 0; \
+	fi; \
+	exit $$status

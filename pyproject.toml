@@ -53,3 +53,6 @@ convention = "google"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+markers = [
+    "integration: exercises a real dependency (e.g. Docker), not just this package's own code",
+]

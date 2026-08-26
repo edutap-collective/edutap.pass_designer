@@ -17,7 +17,7 @@ from edutap.pass_designer.exporter.class_json import _head_payload, build_class
 from edutap.pass_designer.platforms.google.families import HeadField
 from edutap.pass_designer.platforms.google.families import get as get_family
 
-CLASS_ID = "3388000000022141777.library.demo"
+CLASS_ID = "3388000000000000000.library.demo"
 
 
 def _text(module_id: str) -> Line:
@@ -113,14 +113,14 @@ def test_the_barcode_section_belongs_to_the_front() -> None:
 def test_smart_tap_settings_land_on_the_class() -> None:
     draft = _draft(
         redemption=RedemptionSettings(
-            smart_tap_enabled=True, redemption_issuers=["3388000000022141777"]
+            smart_tap_enabled=True, redemption_issuers=["3388000000000000000"]
         )
     )
 
     result = build_class(draft, CLASS_ID)
 
     assert result["enableSmartTap"] is True
-    assert result["redemptionIssuers"] == ["3388000000022141777"]
+    assert result["redemptionIssuers"] == ["3388000000000000000"]
 
 
 def test_head_fields_are_written_through() -> None:

@@ -29,8 +29,8 @@ from edutap.pass_designer.exporter.class_json import build_class
 from edutap.pass_designer.exporter.object_json import build_object
 from edutap.pass_designer.importer.reader import read
 
-CLASS_ID = "3388000000022141777.library.demo"
-OBJECT_ID = "3388000000022141777.specimen.object"
+CLASS_ID = "3388000000000000000.library.demo"
+OBJECT_ID = "3388000000000000000.specimen.object"
 
 
 def _text(module_id: str) -> Line:
@@ -99,7 +99,7 @@ ORIGINAL = Draft(
     ],
     redemption=RedemptionSettings(
         smart_tap_enabled=True,
-        redemption_issuers=["3388000000022141777"],
+        redemption_issuers=["3388000000000000000"],
         redemption_value="LIBRARY-CARD",
     ),
 )

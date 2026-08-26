@@ -22,9 +22,28 @@ class CatalogueField(BaseModel):
     description: str | None = None
 
 
+class CatalogueError(Exception):
+    """A catalogue document at `path` is malformed.
+
+    Deliberately not a `KeyError`: `/validate` and `/export` already catch
+    `KeyError` to turn an unknown pass family into a `400`, and a malformed
+    catalogue is a different failure entirely — a server misconfiguration,
+    not bad user input. A distinct type keeps the two from colliding in the
+    router's exception handling.
+    """
+
+    def __init__(self, path: Path, problem: str) -> None:
+        """Build the error and its message from `path` and `problem`."""
+        super().__init__(f"catalogue at {path} is malformed: {problem}")
+        self.path = path
+        self.problem = problem
+
+
 def load_catalogue(path: Path) -> list[CatalogueField]:
     """Read a catalogue document and return its fields."""
     document = json.loads(path.read_text(encoding="utf-8"))
+    if "fields" not in document:
+        raise CatalogueError(path, "missing the top-level 'fields' key")
     return [CatalogueField(**entry) for entry in document["fields"]]
 
 
