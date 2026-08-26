@@ -1,0 +1,7 @@
+services:
+  designer:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      PASS_DESIGNER_CATALOGUE_PATH: /app/data/catalogue.example.json
