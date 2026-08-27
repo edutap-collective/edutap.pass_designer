@@ -33,7 +33,7 @@ function Editor() {
   // means that round costs no change here.
   const loyalty = families.data?.find((f) => f.family_id === "loyalty");
 
-  if (!loyalty || !catalogue.data) return <p>…</p>;
+  if (!loyalty || !catalogue.data) return <p>{t("app.loading")}</p>;
 
   return (
     <main>

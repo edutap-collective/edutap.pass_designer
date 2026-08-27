@@ -1,7 +1,14 @@
 {
-  "app": { "title": "Pass Designer" },
-  "common": { "languageLabel": "Language" },
-  "tabs": { "front": "Card front" },
+  "app": {
+    "title": "Pass Designer",
+    "loading": "Loading…"
+  },
+  "common": {
+    "languageLabel": "Language"
+  },
+  "tabs": {
+    "front": "Card front"
+  },
   "actions": {
     "check": "Check",
     "import": "Import…",
@@ -9,7 +16,9 @@
     "addRow": "Add row",
     "addModule": "Add module"
   },
-  "head": { "legend": "Card" },
+  "head": {
+    "legend": "Card"
+  },
   "modules": {
     "legend": "Modules",
     "shared": "Shared by every view — the front, the back and the overview row all reference these.",
@@ -19,7 +28,10 @@
     "value": "Value",
     "field": "Field"
   },
-  "preview": { "persona": "Preview person", "noCode": "No code — NFC only" },
+  "preview": {
+    "persona": "Preview person",
+    "noCode": "No code — NFC only"
+  },
   "findings": {
     "none": "No problems found.",
     "error": "Error",
@@ -31,5 +43,10 @@
     "objectJson": "Object JSON",
     "mappings": "Mapping rules",
     "refused": "The export was refused. Fix the errors below and try again."
+  },
+  "rows": {
+    "row": "Row {{number}}",
+    "cell": "Row {{row}}, cell {{cell}}",
+    "remove": "Remove row {{number}}"
   }
 }

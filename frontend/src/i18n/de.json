@@ -1,7 +1,14 @@
 {
-  "app": { "title": "Pass-Designer" },
-  "common": { "languageLabel": "Sprache" },
-  "tabs": { "front": "Kartenvorderseite" },
+  "app": {
+    "title": "Pass-Designer",
+    "loading": "Wird geladen…"
+  },
+  "common": {
+    "languageLabel": "Sprache"
+  },
+  "tabs": {
+    "front": "Kartenvorderseite"
+  },
   "actions": {
     "check": "Prüfen",
     "import": "Importieren…",
@@ -9,7 +16,9 @@
     "addRow": "Zeile hinzufügen",
     "addModule": "Modul hinzufügen"
   },
-  "head": { "legend": "Karte" },
+  "head": {
+    "legend": "Karte"
+  },
   "modules": {
     "legend": "Module",
     "shared": "Von allen Ansichten geteilt — Vorderseite, Rückseite und Übersichtszeile verweisen alle hierauf.",
@@ -19,7 +28,10 @@
     "value": "Wert",
     "field": "Feld"
   },
-  "preview": { "persona": "Vorschauperson", "noCode": "Kein Code — nur NFC" },
+  "preview": {
+    "persona": "Vorschauperson",
+    "noCode": "Kein Code — nur NFC"
+  },
   "findings": {
     "none": "Keine Probleme gefunden.",
     "error": "Fehler",
@@ -31,5 +43,10 @@
     "objectJson": "Object-JSON",
     "mappings": "Zuordnungsregeln",
     "refused": "Der Export wurde abgelehnt. Beheben Sie die Fehler unten und versuchen Sie es erneut."
+  },
+  "rows": {
+    "row": "Zeile {{number}}",
+    "cell": "Zeile {{row}}, Zelle {{cell}}",
+    "remove": "Zeile {{number}} entfernen"
   }
 }

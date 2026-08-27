@@ -14,7 +14,7 @@ export function FrontRows() {
         <div key={rowIndex}>
           <select
             value={row.cells.length}
-            aria-label={`Row ${rowIndex + 1}`}
+            aria-label={t("rows.row", { number: rowIndex + 1 })}
             onChange={(e) =>
               dispatch({
                 type: "setRowCells",
@@ -32,7 +32,7 @@ export function FrontRows() {
             <select
               key={cellIndex}
               value={cell.first?.fallback_chain[0]?.module_id ?? ""}
-              aria-label={`Row ${rowIndex + 1} cell ${cellIndex + 1}`}
+              aria-label={t("rows.cell", { row: rowIndex + 1, cell: cellIndex + 1 })}
               onChange={(e) =>
                 dispatch({
                   type: "setCellField",
@@ -52,7 +52,11 @@ export function FrontRows() {
             </select>
           ))}
 
-          <button type="button" onClick={() => dispatch({ type: "removeRow", row: rowIndex })}>
+          <button
+            type="button"
+            aria-label={t("rows.remove", { number: rowIndex + 1 })}
+            onClick={() => dispatch({ type: "removeRow", row: rowIndex })}
+          >
             ×
           </button>
         </div>
