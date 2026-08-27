@@ -14,7 +14,7 @@ from pathlib import Path
 SUPPORTED = ("en", "de")
 DEFAULT = "en"
 
-_LOCALE_DIR = Path(__file__).resolve().parents[3] / "locales"
+_LOCALE_DIR = Path(__file__).parent / "locales"
 
 
 def negotiate(accept_language: str | None) -> str:

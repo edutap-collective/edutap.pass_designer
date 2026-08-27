@@ -36,6 +36,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/edutap"]
+artifacts = ["src/edutap/pass_designer/locales/**/*.mo"]
 
 [tool.ruff]
 line-length = 88

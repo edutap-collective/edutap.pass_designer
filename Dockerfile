@@ -2,7 +2,9 @@ FROM python:3.12-slim AS build
 WORKDIR /build
 COPY pyproject.toml README.md ./
 COPY src ./src
-RUN pip install --no-cache-dir build && python -m build --wheel
+RUN pip install --no-cache-dir build babel \
+    && pybabel compile -d src/edutap/pass_designer/locales \
+    && python -m build --wheel
 
 FROM python:3.12-slim
 WORKDIR /app

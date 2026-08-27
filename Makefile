@@ -10,7 +10,7 @@ reformat:
 	uv run ruff check --fix src tests
 
 locales: ## Compile the .po catalogues to .mo
-	uv run pybabel compile -d locales
+	uv run pybabel compile -d src/edutap/pass_designer/locales
 
 test-local: locales
 	uv run pytest tests -m "not integration"

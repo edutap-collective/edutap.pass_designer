@@ -21,12 +21,11 @@ def test_negotiate_picks_a_language_we_have(header: str | None, expected: str) -
 
 
 def test_a_known_message_is_translated() -> None:
+    english = translator("en")
     german = translator("de")
+    msgid = "Google requires '%(key)s' when the class is created"
 
-    assert german("head") != "head" or True  # smoke: the catalogue loads
-    assert german("Google requires '%(key)s' when the class is created") != (
-        "Google requires '%(key)s' when the class is created"
-    )
+    assert german(msgid) != english(msgid)
 
 
 def test_an_unknown_message_falls_back_to_its_own_text() -> None:
