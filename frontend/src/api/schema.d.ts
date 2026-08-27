@@ -572,6 +572,15 @@ export interface operations {
                     "application/json": components["schemas"]["CatalogueField"][];
                 };
             };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueErrorResponse"];
+                };
+            };
         };
     };
     export_draft_designer_v1_export_post: {
@@ -705,6 +714,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Persona"][];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueErrorResponse"];
                 };
             };
         };
