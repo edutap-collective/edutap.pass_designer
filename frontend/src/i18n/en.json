@@ -1,0 +1,34 @@
+{
+  "app": { "title": "Pass Designer" },
+  "tabs": { "front": "Card front" },
+  "actions": {
+    "check": "Check",
+    "import": "Import…",
+    "export": "Export",
+    "addRow": "Add row",
+    "addModule": "Add module"
+  },
+  "head": { "legend": "Card" },
+  "modules": {
+    "legend": "Modules",
+    "shared": "Shared by every view — the front, the back and the overview row all reference these.",
+    "constant": "Fixed value",
+    "bound": "Filled per person",
+    "header": "Header",
+    "value": "Value",
+    "field": "Field"
+  },
+  "preview": { "persona": "Preview person", "noCode": "No code — NFC only" },
+  "findings": {
+    "none": "No problems found.",
+    "error": "Error",
+    "warning": "Warning",
+    "notCheckedYet": "Not checked yet."
+  },
+  "export": {
+    "classJson": "Class JSON",
+    "objectJson": "Object JSON",
+    "mappings": "Mapping rules",
+    "refused": "The export was refused. Fix the errors below and try again."
+  }
+}

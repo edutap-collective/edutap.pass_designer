@@ -1,0 +1,34 @@
+{
+  "app": { "title": "Pass-Designer" },
+  "tabs": { "front": "Kartenvorderseite" },
+  "actions": {
+    "check": "Prüfen",
+    "import": "Importieren…",
+    "export": "Exportieren",
+    "addRow": "Zeile hinzufügen",
+    "addModule": "Modul hinzufügen"
+  },
+  "head": { "legend": "Karte" },
+  "modules": {
+    "legend": "Module",
+    "shared": "Von allen Ansichten geteilt — Vorderseite, Rückseite und Übersichtszeile verweisen alle hierauf.",
+    "constant": "Fester Wert",
+    "bound": "Je Person befüllt",
+    "header": "Kopfzeile",
+    "value": "Wert",
+    "field": "Feld"
+  },
+  "preview": { "persona": "Vorschauperson", "noCode": "Kein Code — nur NFC" },
+  "findings": {
+    "none": "Keine Probleme gefunden.",
+    "error": "Fehler",
+    "warning": "Warnung",
+    "notCheckedYet": "Noch nicht geprüft."
+  },
+  "export": {
+    "classJson": "Class-JSON",
+    "objectJson": "Object-JSON",
+    "mappings": "Zuordnungsregeln",
+    "refused": "Der Export wurde abgelehnt. Beheben Sie die Fehler unten und versuchen Sie es erneut."
+  }
+}
