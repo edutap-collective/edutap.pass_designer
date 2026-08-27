@@ -1,0 +1,59 @@
+name: CI
+
+# Calls the same make targets a developer runs locally, rather than repeating
+# the commands here. The two drift otherwise, and the drift only shows up when
+# CI lets through something that would have been red on a laptop.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # `requires-python` is >=3.12. Without the lower bound in the matrix
+        # nothing ever exercises the floor: a developer's uv resolves to the
+        # newest interpreter it can find, and the container runs 3.12-slim.
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Sync the environment
+        # The make targets call `uv run`, which needs the project environment
+        # to exist. `--frozen` fails rather than silently re-resolving when
+        # uv.lock and pyproject.toml disagree — a lock file nobody notices
+        # going stale is worse than no lock file.
+        run: uv sync --group dev --frozen --python ${{ matrix.python-version }}
+
+      - name: Lint and type check
+        run: make lint
+
+      - name: Test
+        run: make test-local
+
+      - name: Integration tests
+        # No integration test carries the marker yet, so this selects nothing
+        # and exits 0. It runs anyway, so that the first test to gain the
+        # marker is executed rather than quietly skipped forever.
+        run: make test-integration
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # A build-only check. Publishing lives in docker-publish.yml; this job
+      # exists so a broken Dockerfile fails a pull request from a fork, where
+      # the publishing workflow cannot push.
+      - name: Build the application image
+        run: docker build -t pass-designer:ci .
