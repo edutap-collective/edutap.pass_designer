@@ -34,6 +34,7 @@
     "unsupportedCode": "Keine Vorschau für {{type}} — dieses Symbol kann noch nicht gezeichnet werden"
   },
   "findings": {
+    "legend": "Befunde",
     "none": "Keine Probleme gefunden.",
     "error": "Fehler",
     "warning": "Warnung",
@@ -44,6 +45,9 @@
     "objectJson": "Object-JSON",
     "mappings": "Zuordnungsregeln",
     "refused": "Der Export wurde abgelehnt. Beheben Sie die Fehler unten und versuchen Sie es erneut."
+  },
+  "import": {
+    "failed": "Der Import ist fehlgeschlagen. Prüfen Sie die Dateien und versuchen Sie es erneut."
   },
   "rows": {
     "row": "Zeile {{number}}",

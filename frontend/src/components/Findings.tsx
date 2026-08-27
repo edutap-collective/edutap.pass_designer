@@ -15,7 +15,7 @@ export function Findings({ findings }: { findings: Finding[] | null }) {
   ];
 
   return (
-    <ul aria-label={t("findings.error")}>
+    <ul aria-label={t("findings.legend")}>
       {ordered.map((finding, index) => (
         <li key={index} data-severity={finding.severity}>
           <strong>

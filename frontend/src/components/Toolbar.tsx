@@ -10,17 +10,19 @@ export function Toolbar() {
   const dispatch = useDraftDispatch();
   const { t } = useTranslation();
   const [findings, setFindings] = useState<Finding[] | null>(null);
-  const [refused, setRefused] = useState(false);
+  // Whichever of Export or Import goes wrong, it lands here — one place to
+  // look, and one `<p role="alert">` below, rather than a flag per button.
+  const [alertKey, setAlertKey] = useState<string | null>(null);
   const [classFile, setClassFile] = useState<File | null>(null);
   const [objectFile, setObjectFile] = useState<File | null>(null);
 
   async function onCheck() {
-    setRefused(false);
+    setAlertKey(null);
     setFindings(await checkDraft(draft));
   }
 
   async function onExport() {
-    setRefused(false);
+    setAlertKey(null);
     try {
       const result = await exportDraft(draft, "ISSUER.class", "ISSUER.specimen");
       setFindings([]);
@@ -32,17 +34,23 @@ export function Toolbar() {
       // Check means one place to look, whichever button was pressed.
       const detail = error as { findings?: Finding[] };
       setFindings(detail.findings ?? []);
-      setRefused(true);
+      setAlertKey("export.refused");
     }
   }
 
   async function onImport() {
     if (!classFile || !objectFile) return;
-    dispatch({
-      type: "replaceDraft",
-      draft: await importFiles(draft.family, classFile, objectFile),
-    });
-    setFindings(null);
+    setAlertKey(null);
+    try {
+      const imported = await importFiles(draft.family, classFile, objectFile);
+      dispatch({ type: "replaceDraft", draft: imported });
+      setFindings(null);
+    } catch {
+      // A bad file, an unknown family, a backend error — the draft is never
+      // touched (dispatch above is only reached on success), but the person
+      // pressing the button still has to be told something happened.
+      setAlertKey("import.failed");
+    }
   }
 
   return (
@@ -74,7 +82,7 @@ export function Toolbar() {
         {t("actions.import")}
       </button>
 
-      {refused ? <p role="alert">{t("export.refused")}</p> : null}
+      {alertKey ? <p role="alert">{t(alertKey)}</p> : null}
       <Findings findings={findings} />
     </section>
   );

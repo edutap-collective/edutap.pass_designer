@@ -34,6 +34,7 @@
     "unsupportedCode": "No preview for {{type}} — this symbology cannot be drawn yet"
   },
   "findings": {
+    "legend": "Findings",
     "none": "No problems found.",
     "error": "Error",
     "warning": "Warning",
@@ -44,6 +45,9 @@
     "objectJson": "Object JSON",
     "mappings": "Mapping rules",
     "refused": "The export was refused. Fix the errors below and try again."
+  },
+  "import": {
+    "failed": "The import failed. Check the files and try again."
   },
   "rows": {
     "row": "Row {{number}}",
