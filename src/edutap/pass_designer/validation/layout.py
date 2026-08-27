@@ -78,6 +78,45 @@ def check_field_paths(draft: Draft) -> list[FindingTemplate]:
     return findings
 
 
+def check_duplicate_module_ids(draft: Draft) -> list[FindingTemplate]:
+    """Check that no two modules of the same kind share a `module_id`.
+
+    The editor generates ids client-side; an imported artefact can carry a
+    gap in its own numbering, and a freshly generated id can land on it. Two
+    modules sharing an id means two `textModulesData` (or `imageModulesData`)
+    entries with the same id in the exported object and an ambiguous
+    `fieldPath` — Google's behaviour in that case is undefined, and nothing
+    downstream would ever say why a value looked wrong. This check is the
+    layer that must not let such an artefact out, whatever produced it.
+    """
+    findings: list[FindingTemplate] = []
+    for label, modules in (
+        ("text", draft.text_modules),
+        ("image", draft.image_modules),
+    ):
+        seen: set[str] = set()
+        duplicates: set[str] = set()
+        for module in modules:
+            if module.module_id in seen:
+                duplicates.add(module.module_id)
+            seen.add(module.module_id)
+        for module_id in sorted(duplicates):
+            findings.append(
+                FindingTemplate(
+                    severity="error",
+                    location=f"{label} modules",
+                    msgid=(
+                        "more than one %(kind)s module uses the id "
+                        "'%(module_id)s'; Google's behaviour when two "
+                        "modules share an id is undefined and the "
+                        "exported fieldPath becomes ambiguous"
+                    ),
+                    params={"kind": label, "module_id": module_id},
+                )
+            )
+    return findings
+
+
 def check_required_head_fields(draft: Draft) -> list[FindingTemplate]:
     """Check the fields Google demands when the class is created.
 

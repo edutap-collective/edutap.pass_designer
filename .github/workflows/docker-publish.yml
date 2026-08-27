@@ -73,3 +73,11 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Vite bakes this prefix into the built assets' paths; a runtime env
+          # var cannot fix it afterwards (see the Dockerfile). This image is
+          # the one deployed at /portale/edutap-designer (the spec's own
+          # deployment target), so the build has to carry that prefix, or the
+          # published image serves a page whose asset links 404 behind it —
+          # green health check, blank screen.
+          build-args: |
+            PASS_DESIGNER_ROOT_PATH=/portale/edutap-designer

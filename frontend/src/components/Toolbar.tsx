@@ -18,7 +18,16 @@ export function Toolbar() {
 
   async function onCheck() {
     setAlertKey(null);
-    setFindings(await checkDraft(draft));
+    try {
+      setFindings(await checkDraft(draft));
+    } catch {
+      // A failed Check must not leave the previous result standing: "no
+      // problems found" from a draft that was never actually re-checked
+      // reads as an affirmative approval it never earned. `null` is the
+      // panel's own "not checked yet" state, and that is the truth here.
+      setFindings(null);
+      setAlertKey("check.failed");
+    }
   }
 
   async function onExport() {

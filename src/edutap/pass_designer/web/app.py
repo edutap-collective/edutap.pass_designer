@@ -9,6 +9,13 @@ from fastapi.staticfiles import StaticFiles
 from ..settings import get_settings
 from .routers import design
 
+#: Where the built SPA lives, if it was built at all (`static/` is
+#: gitignored — a developer who has never run `make build-frontend` has
+#: none). A module-level attribute rather than a local inside `create_app()`
+#: so a test can monkeypatch it to a `tmp_path` and exercise both branches of
+#: the check below without depending on the state of this checkout.
+STATIC_DIR = Path(__file__).parent / "static"
+
 
 def create_app() -> FastAPI:
     """Return a configured application instance."""
@@ -23,7 +30,7 @@ def create_app() -> FastAPI:
     # The built SPA, if there is one. Mounted last and under a catch-all so
     # the API keeps its paths: `/designer/v1/...` is matched by the router
     # above and never reaches this.
-    static_dir = Path(__file__).parent / "static"
+    static_dir = STATIC_DIR
     if (static_dir / "index.html").exists():
         app.mount(
             "/assets",

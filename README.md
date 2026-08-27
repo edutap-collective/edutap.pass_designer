@@ -14,11 +14,23 @@ to make a template version out of them:
 * `mappings.json` — the binding table, in the shape `edutap.pass_builder`
   already defines.
 
-**Status: the backend is implemented.** A FastAPI service, a container and
-a test suite of over 90 tests cover the draft model, the exporter, the
-importer and the HTTP surface. The React editor that will sit in front of
-it is the next plan. The agreed design is
+**Status: a walking skeleton.** The FastAPI backend is complete — draft
+model, exporter, importer, six HTTP routes — and a React editor now sits in
+front of it, served from `/`. The editor can lay out the card front (head
+fields, rows, shared text modules), preview it against a generated persona,
+run Check and see findings translated into English or German, and Export or
+Import the three artefacts. It cannot yet edit the back or the Wallet
+overview row, edit image modules, or offer a real `classId`/`objectId` — see
+the limitation below. The agreed design is
+[`docs/superpowers/specs/2026-08-27-pass-designer-editor-design.md`](docs/superpowers/specs/2026-08-27-pass-designer-editor-design.md),
+building on the backend design in
 [`docs/superpowers/specs/2026-08-26-pass-designer-design.md`](docs/superpowers/specs/2026-08-26-pass-designer-design.md).
+
+**Known limitation: the exported `classId`/`objectId` are placeholders.**
+Export writes `ISSUER.class` and `ISSUER.specimen` verbatim into the
+downloaded `class.json` and `object.json` — there is no UI for them yet.
+Edit them before handing the files to the pass builder manager, or they will
+collide with every other export made from this tool.
 
 ## Running it
 
@@ -26,8 +38,16 @@ See [`docs/how-to/run-the-service.md`](docs/how-to/run-the-service.md) for
 running the service in a container or directly with `uvicorn`, and for the
 routes it exposes.
 
-For development: `make test-local` runs the test suite, and `make lint`
-runs `ruff` and `ty`.
+For the backend: `make test-local` runs the test suite, and `make lint` runs
+`ruff` and `ty`.
+
+For the editor, in [`frontend/`](frontend/): a **pnpm**-managed React app on
+the Node version pinned in [`.nvmrc`](.nvmrc). `make test-frontend` runs its
+tests (`pnpm vitest run`) and `make build-frontend` builds it
+(`pnpm build`) into the static files the backend serves from `/` — see
+["Behind a path prefix"](docs/how-to/run-the-service.md#behind-a-path-prefix)
+for why the deployment prefix has to be set at build time, not just at run
+time.
 
 ## What it is deliberately not
 

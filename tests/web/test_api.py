@@ -381,3 +381,42 @@ async def test_a_malformed_catalogue_answers_500_with_json(
     assert response.status_code == 500
     assert response.headers["content-type"].startswith("application/json")
     assert str(catalogue_path) in response.json()["detail"]
+
+
+# --- Final fix wave, Fix 4: `/catalogue` and `/personas` are new in this
+# branch and did not get the same treatment as `/validate` and `/export` —
+# a malformed catalogue there fell through to FastAPI's bare
+# `500 text/plain "Internal Server Error"`, discarding the diagnostic
+# `CatalogueErrorResponse` exists to carry. ---
+
+
+async def test_catalogue_route_answers_500_with_json_on_a_malformed_catalogue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    catalogue_path = tmp_path / "catalogue.json"
+    catalogue_path.write_text(json.dumps({"not_fields": []}), encoding="utf-8")
+    monkeypatch.setenv("PASS_DESIGNER_CATALOGUE_PATH", str(catalogue_path))
+
+    transport = ASGITransport(app=create_app())
+    async with AsyncClient(transport=transport, base_url="http://test") as broken:
+        response = await broken.get("/designer/v1/catalogue")
+
+    assert response.status_code == 500
+    assert response.headers["content-type"].startswith("application/json")
+    assert str(catalogue_path) in response.json()["detail"]
+
+
+async def test_personas_route_answers_500_with_json_on_a_malformed_catalogue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    catalogue_path = tmp_path / "catalogue.json"
+    catalogue_path.write_text(json.dumps({"not_fields": []}), encoding="utf-8")
+    monkeypatch.setenv("PASS_DESIGNER_CATALOGUE_PATH", str(catalogue_path))
+
+    transport = ASGITransport(app=create_app())
+    async with AsyncClient(transport=transport, base_url="http://test") as broken:
+        response = await broken.get("/designer/v1/personas")
+
+    assert response.status_code == 500
+    assert response.headers["content-type"].startswith("application/json")
+    assert str(catalogue_path) in response.json()["detail"]

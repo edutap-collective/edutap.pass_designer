@@ -180,15 +180,25 @@ async def list_families() -> list[FamilyResponse]:
     ]
 
 
-@router.get("/personas")
+@router.get(
+    "/personas",
+    responses={500: {"model": CatalogueErrorResponse}},
+)
 async def list_personas(
     settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> list[Persona]:
     """Return the preview personas, generated from the loaded catalogue."""
-    return build_personas(await _load_catalogue(settings))
+    try:
+        catalogue = await _load_catalogue(settings)
+    except CatalogueError as error:
+        raise _catalogue_error(error) from error
+    return build_personas(catalogue)
 
 
-@router.get("/catalogue")
+@router.get(
+    "/catalogue",
+    responses={500: {"model": CatalogueErrorResponse}},
+)
 async def list_catalogue(
     settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> list[CatalogueField]:
@@ -198,7 +208,10 @@ async def list_catalogue(
     mistyped. `CatalogueField` is the shape `edutap.pass_builder` already
     defines; nothing new is invented here.
     """
-    return await _load_catalogue(settings)
+    try:
+        return await _load_catalogue(settings)
+    except CatalogueError as error:
+        raise _catalogue_error(error) from error
 
 
 @router.post(

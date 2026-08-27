@@ -16,7 +16,12 @@ from ..draft.models import Draft
 from ..i18n import DEFAULT, translator
 from ._common import MODULE_LIMIT, MODULE_WARNING_THRESHOLD, Finding, Severity
 from .exportable import check_exportable
-from .layout import check_field_paths, check_required_head_fields, check_volume
+from .layout import (
+    check_duplicate_module_ids,
+    check_field_paths,
+    check_required_head_fields,
+    check_volume,
+)
 from .values import check_values
 
 __all__ = [
@@ -38,6 +43,7 @@ def validate(
     """
     templates = [
         *check_field_paths(draft),
+        *check_duplicate_module_ids(draft),
         *check_required_head_fields(draft),
         *check_volume(draft),
         *check_values(draft, catalogue),

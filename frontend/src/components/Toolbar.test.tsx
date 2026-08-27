@@ -15,8 +15,9 @@ vi.mock("../draft/context", () => ({
 }));
 
 const importFiles = vi.fn();
+const checkDraft = vi.fn();
 vi.mock("../api/actions", () => ({
-  checkDraft: vi.fn(),
+  checkDraft: (...args: unknown[]) => checkDraft(...args),
   exportDraft: vi.fn(),
   downloadJson: vi.fn(),
   importFiles: (...args: unknown[]) => importFiles(...args),
@@ -40,5 +41,26 @@ describe("Toolbar import", () => {
     // whichever button was pressed.
     expect(await screen.findByRole("alert")).toHaveTextContent(/import failed/i);
     expect(dispatch).not.toHaveBeenCalled();
+  });
+});
+
+describe("Toolbar check", () => {
+  it("clears a standing result and shows an alert when Check fails", async () => {
+    // First a successful check, so the panel reads "No problems found." —
+    // then a rejected one. The bug this guards against is exactly that
+    // affirmative panel surviving a Check that never actually completed.
+    checkDraft.mockResolvedValueOnce([]);
+    checkDraft.mockRejectedValueOnce(new Error("validate failed"));
+    const user = userEvent.setup();
+    render(<Toolbar />);
+
+    await user.click(screen.getByRole("button", { name: /^check$|^prüfen$/i }));
+    expect(await screen.findByText(/no problems found|keine probleme/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^check$|^prüfen$/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/check failed|prüfung ist fehlgeschlagen/i);
+    expect(screen.getByText(/not checked yet|noch nicht geprüft/i)).toBeInTheDocument();
+    expect(screen.queryByText(/no problems found|keine probleme/i)).not.toBeInTheDocument();
   });
 });

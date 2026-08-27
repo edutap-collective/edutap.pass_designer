@@ -1,6 +1,30 @@
 import { useTranslation } from "react-i18next";
-import type { CatalogueField } from "../api/types";
+import type { CatalogueField, TextModuleDraft } from "../api/types";
 import { useDraft, useDraftDispatch } from "../draft/context";
+
+/**
+ * Return an id that cannot collide with any text module already on the draft.
+ *
+ * `module_${length + 1}` is not safe: an imported artefact can carry a gap in
+ * its own numbering (any foreign class can, and Import exists to take
+ * foreign artefacts) — one module id `module_2` and nothing else — and the
+ * next "Add module" click would then land on `module_2` again, silently
+ * merging two unrelated modules into one.
+ *
+ * Chosen over `crypto.randomUUID()` for readability: these ids appear
+ * verbatim in the exported `fieldPath` and in `mappings.json`, where a
+ * person debugging a template benefits from `module_3` over an opaque UUID.
+ * The backend validator (`check_duplicate_module_ids`) is the layer that
+ * must not let a collision out regardless of what the editor generates, so
+ * this only has to be good enough to not manufacture one on the happy path.
+ */
+export function nextTextModuleId(modules: TextModuleDraft[]): string {
+  const highest = modules.reduce((max, module) => {
+    const match = /^module_(\d+)$/.exec(module.module_id);
+    return match ? Math.max(max, Number(match[1])) : max;
+  }, 0);
+  return `module_${highest + 1}`;
+}
 
 /**
  * The modules a pass carries.
@@ -95,7 +119,7 @@ export function ModuleList({ catalogue }: { catalogue: CatalogueField[] }) {
         onClick={() =>
           dispatch({
             type: "addTextModule",
-            moduleId: `module_${draft.text_modules.length + 1}`,
+            moduleId: nextTextModuleId(draft.text_modules),
           })
         }
       >

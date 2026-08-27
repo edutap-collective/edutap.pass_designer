@@ -1,7 +1,8 @@
 {
   "app": {
     "title": "Pass-Designer",
-    "loading": "Wird geladen…"
+    "loading": "Wird geladen…",
+    "loadFailed": "Laden fehlgeschlagen. Seite neu laden oder später erneut versuchen."
   },
   "common": {
     "languageLabel": "Sprache"
@@ -15,6 +16,9 @@
     "export": "Exportieren",
     "addRow": "Zeile hinzufügen",
     "addModule": "Modul hinzufügen"
+  },
+  "check": {
+    "failed": "Die Prüfung ist fehlgeschlagen. Der Entwurf wurde nicht neu geprüft — bitte erneut versuchen."
   },
   "head": {
     "legend": "Karte"

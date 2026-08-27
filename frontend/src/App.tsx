@@ -52,6 +52,14 @@ function Editor() {
   const selectedPersona =
     personas.data?.find((p) => p.persona_id === personaId) ?? personas.data?.[0];
 
+  // isError, not just "no data yet": a permanently pending query and a failed
+  // one both leave `.data` undefined, and only `isError` tells them apart. A
+  // malformed catalogue on disk (a `500` — see `/catalogue`'s error handling)
+  // must not read forever as "Loading…".
+  if (families.isError || catalogue.isError || personas.isError) {
+    return <p role="alert">{t("app.loadFailed")}</p>;
+  }
+
   if (!loyalty || !catalogue.data) return <p>{t("app.loading")}</p>;
 
   return (

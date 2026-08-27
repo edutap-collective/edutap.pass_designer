@@ -1,6 +1,13 @@
 services:
   designer:
-    build: .
+    build:
+      context: .
+      # The frontend bakes this into the built assets' paths at build time
+      # (Vite's `base`); it is not something a runtime env var can fix after
+      # the fact. Defaulted the same way the runtime `PASS_DESIGNER_ROOT_PATH`
+      # is: unset means "served at the root", `/`.
+      args:
+        PASS_DESIGNER_ROOT_PATH: ${PASS_DESIGNER_ROOT_PATH:-/}
     ports:
       - "8000:8000"
     environment:
