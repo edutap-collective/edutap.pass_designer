@@ -40,13 +40,14 @@ export function ModuleList({ catalogue }: { catalogue: CatalogueField[] }) {
   const { t } = useTranslation();
 
   return (
-    <fieldset>
-      <legend>{t("modules.legend")}</legend>
-      <p>{t("modules.shared")}</p>
+    <fieldset className="panel">
+      <legend className="panel__legend">{t("modules.legend")}</legend>
+      <p className="panel__note">{t("modules.shared")}</p>
 
       {draft.text_modules.map((module) => (
-        <div key={module.module_id}>
-          <label>
+        <div className="module" key={module.module_id}>
+          {/* The header is prose — it is what a person reads on the card. */}
+          <label className="field">
             {t("modules.header")}
             <input
               value={module.header ?? ""}
@@ -60,7 +61,7 @@ export function ModuleList({ catalogue }: { catalogue: CatalogueField[] }) {
             />
           </label>
 
-          <label>
+          <label className="field field--check">
             {t("modules.bound")}
             <input
               type="checkbox"
@@ -76,7 +77,8 @@ export function ModuleList({ catalogue }: { catalogue: CatalogueField[] }) {
           </label>
 
           {module.bound ? (
-            <label>
+            /* Catalogue keys are field paths, not prose. */
+            <label className="field field--literal">
               {t("modules.field")}
               <select
                 value={module.value}
@@ -97,7 +99,10 @@ export function ModuleList({ catalogue }: { catalogue: CatalogueField[] }) {
               </select>
             </label>
           ) : (
-            <label>
+            /* A fixed value carries `${…}` placeholder syntax and is exported
+               byte for byte, so it is set in the literal face — that is what
+               makes a mistyped `${persona.…}` for `${person.…}` visible. */
+            <label className="field field--literal">
               {t("modules.value")}
               <input
                 value={module.value}
@@ -116,6 +121,7 @@ export function ModuleList({ catalogue }: { catalogue: CatalogueField[] }) {
 
       <button
         type="button"
+        className="button button--quiet"
         onClick={() =>
           dispatch({
             type: "addTextModule",

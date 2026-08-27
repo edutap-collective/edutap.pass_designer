@@ -63,18 +63,18 @@ function Editor() {
   if (!loyalty || !catalogue.data) return <p>{t("app.loading")}</p>;
 
   return (
-    <main>
-      <header>
-        <h1>{t("app.title")}</h1>
+    <main className="page">
+      <header className="page__header">
+        <h1 className="page__title">{t("app.title")}</h1>
         <LanguageSwitcher />
       </header>
 
       <div className="editor">
-        <form onSubmit={(e) => e.preventDefault()}>
+        <form className="editor__form" onSubmit={(e) => e.preventDefault()}>
           {/* The tabs will grow to three. Today there is one, and the module
               list sits OUTSIDE them — the front, the back and the overview row
               all reference the same modules. */}
-          <section aria-label={t("tabs.front")}>
+          <section className="editor__tab" aria-label={t("tabs.front")}>
             <HeadFields fields={loyalty.head_fields} />
             <FrontRows />
           </section>
@@ -83,8 +83,8 @@ function Editor() {
           <Toolbar />
         </form>
 
-        <aside>
-          <label>
+        <aside className="preview">
+          <label className="field preview__persona">
             {t("preview.persona")}
             <select
               value={selectedPersona?.persona_id ?? ""}
@@ -98,7 +98,9 @@ function Editor() {
             </select>
           </label>
 
-          <Card persona={selectedPersona} />
+          <div className="preview__stage">
+            <Card persona={selectedPersona} />
+          </div>
         </aside>
       </div>
     </main>

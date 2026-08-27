@@ -1,11 +1,467 @@
-/* The one global stylesheet in the repository (every other one, such as
-   Card.css, is scoped to its own component and imported there). It exists
-   for the single layout rule the spec is explicit about: "Form on the left,
-   preview on the right, nothing between them." Deliberately minimal —
-   this round is about proving the interaction model, not visual polish. */
+/* The one global stylesheet in the repository. Component-scoped sheets
+   (Card.css) stay with their component and are imported there.
+
+   The idea the rest of this file follows: the form is the *datasheet* of a
+   card, and the card is the object. So the chrome is flat, quiet and
+   paper-white, and the preview is the only place on the page with colour and
+   depth. Everything below is in service of that split. */
+
+:root {
+  /* The accent must not be confusable with a card colour, because the card
+     colour is user data — a designer picks their university's brand colour
+     and it lands in `hexBackgroundColor`. A desaturated slate is one nobody
+     picks for a pass background, so the chrome never reads as part of the
+     artefact being designed. */
+  --accent: #2f4858;
+
+  --ink: #1a1c1f;
+  --ink-muted: #5b6570;
+  --paper: #fff;
+  --page: #f4f5f7;
+  --ground: #e3e7ec;
+  --rule: #d3d7dd;
+
+  /* No webfont. The service runs behind Shibboleth, so a webfont would be a
+     network dependency, a CSP question and — in an EUPL repository — a
+     licence question, in exchange for nothing at a tool used at a desk. */
+  --font-ui: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Reserved for input whose content travels into the exported JSON verbatim:
+     `${person.given_name}` placeholders, image URIs, catalogue keys. The
+     monospace face is the signal that this text is not prose — it is why a
+     mistyped `${persona.…}` for `${person.…}` is visible at all. */
+  --font-literal: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Form controls do not inherit the document font on their own. */
+input,
+select,
+button,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* One visible focus treatment for everything, rather than per-control rules
+   that drift apart. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* --- page shell ---------------------------------------------------------- */
+
+.page {
+  max-width: 88rem;
+  margin: 0 auto;
+  padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 4rem;
+}
+
+.page__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.875rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.page__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.page__header select {
+  padding: 0.3rem 0.45rem;
+  font-size: 0.8125rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+}
+
+/* --- the two columns ----------------------------------------------------- */
+
 .editor {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 2rem;
   align-items: start;
+}
+
+.editor__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+/* A view tab holds several panels and has to carry the column's own rhythm,
+   otherwise its panels sit flush while every other one is spaced. */
+.editor__tab {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* --- panels (one per fieldset) ------------------------------------------- */
+
+.panel {
+  margin: 0;
+  padding: 1.125rem 1.25rem 1.25rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.panel__legend {
+  padding: 0 0.4rem;
+  margin-left: -0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.panel__note {
+  margin: 0 0 1rem;
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}
+
+/* --- fields -------------------------------------------------------------- */
+
+/* The label text is a bare text node beside its control, so the column
+   direction alone stacks them — no wrapper element, and therefore no change
+   to what the tests query by. The label styling lives on the container and is
+   reset on the control. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.field input,
+.field select {
+  padding: 0.4rem 0.55rem;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+}
+
+.field input[type="color"] {
+  padding: 0.15rem;
+  block-size: 2.1rem;
+  inline-size: 4rem;
+}
+
+.field input[type="file"] {
+  padding: 0.3rem;
+  font-size: 0.8125rem;
+}
+
+/* Content that is copied into the exported JSON byte for byte. */
+.field--literal input,
+.field--literal select {
+  font-family: var(--font-literal);
+  font-size: 0.875rem;
+}
+
+/* A checkbox reads control-first; reversing the row puts it before its text
+   without moving anything in the DOM. */
+.field--check {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.field--check input {
+  inline-size: 1rem;
+  block-size: 1rem;
+  padding: 0;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.875rem 1.25rem;
+}
+
+/* --- front rows ---------------------------------------------------------- */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Without this the row is three anonymous dropdowns: "Row 1" exists only in
+   the aria-label, so a sighted person reads nothing at all. Hidden from the
+   accessibility tree because the controls already carry that name. */
+.row__marker {
+  flex: none;
+  inline-size: 4.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.row select {
+  padding: 0.35rem 0.45rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+}
+
+.row__count {
+  flex: none;
+  inline-size: 3.5rem;
+}
+
+.row__cell {
+  flex: 1;
+  min-width: 0;
+}
+
+.row__remove {
+  flex: none;
+  margin-left: auto;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  padding: 0;
+  color: var(--ink-muted);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.row__remove:hover {
+  color: var(--ink);
+  border-color: var(--ink-muted);
+}
+
+/* --- modules ------------------------------------------------------------- */
+
+.module {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem 1rem;
+  align-items: end;
+  padding: 0.875rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+
+/* --- buttons ------------------------------------------------------------- */
+
+.button {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--ink-muted);
+}
+
+.button:disabled {
+  color: var(--ink-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Export is the terminal action — the thing a person came here to do. */
+.button--primary {
+  color: var(--paper);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.button--primary:hover:not(:disabled) {
+  background: #24343f;
+  border-color: #24343f;
+}
+
+/* "Add row" and "Add module" are frequent and small; they should not compete
+   with the two actions that end the session. */
+.button--quiet {
+  margin-top: 0.75rem;
+  color: var(--accent);
+  background: none;
+  border-color: transparent;
+  padding-inline: 0.35rem;
+}
+
+.button--quiet:hover:not(:disabled) {
+  background: var(--page);
+  border-color: var(--rule);
+}
+
+/* --- toolbar ------------------------------------------------------------- */
+
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.125rem 1.25rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.toolbar__actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+/* Import replaces the draft rather than reporting on it, so it is set apart
+   from Check and Export — and the two file pickers sit with it, because they
+   are its inputs and not the export's. */
+.toolbar__import {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.alert {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.875rem;
+  color: #7f1d1d;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 5px;
+}
+
+/* --- findings ------------------------------------------------------------ */
+
+/* `:not(.alert)` is load-bearing, not tidiness: `.toolbar > p` outweighs the
+   bare `.alert` class (0,1,1 against 0,1,0), so without it the error message
+   would quietly take the muted colour of the findings line. */
+.toolbar > p:not(.alert) {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+}
+
+.toolbar ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toolbar li {
+  padding: 0.5rem 0.65rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--rule);
+  border-left-width: 3px;
+  border-radius: 4px;
+}
+
+.toolbar li[data-severity="error"] {
+  border-left-color: #b91c1c;
+}
+
+.toolbar li:not([data-severity="error"]) {
+  border-left-color: #b45309;
+}
+
+.toolbar code {
+  font-family: var(--font-literal);
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}
+
+/* --- preview ------------------------------------------------------------- */
+
+/* The proof sheet: a distinctly different surface from the paper-white form,
+   so the card reads as an object lying on something rather than as one more
+   panel. Sticky, because judging a layout means seeing the card while
+   editing the field that changes it. */
+.preview {
+  position: sticky;
+  top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  background: var(--ground);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.preview__persona {
+  align-self: start;
+}
+
+.preview__persona select {
+  background: var(--paper);
+}
+
+/* Block layout on purpose. As a flex item the card would take its content
+   width — and an empty draft has almost no content, so it would render as a
+   sliver rather than as a card. Block-level, `max-width` caps it and the auto
+   margins centre it. */
+.preview__stage {
+  padding-bottom: 0.5rem;
+}
+
+.preview__stage > .card {
+  margin-inline: auto;
+}
+
+/* --- narrow windows ------------------------------------------------------ */
+
+@media (max-width: 62rem) {
+  .editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Stacked, a sticky preview would cover the form it belongs to. */
+  .preview {
+    position: static;
+  }
 }

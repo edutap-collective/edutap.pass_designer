@@ -63,35 +63,58 @@ export function Toolbar() {
   }
 
   return (
-    <section>
-      <button type="button" onClick={() => void onCheck()}>
-        {t("actions.check")}
-      </button>
-      <button type="button" onClick={() => void onExport()}>
-        {t("actions.export")}
-      </button>
+    <section className="toolbar">
+      {/* Check and Export report on the draft. Export is the terminal action,
+          so it carries the emphasis. */}
+      <div className="toolbar__actions">
+        <button type="button" className="button" onClick={() => void onCheck()}>
+          {t("actions.check")}
+        </button>
+        <button
+          type="button"
+          className="button button--primary"
+          onClick={() => void onExport()}
+        >
+          {t("actions.export")}
+        </button>
+      </div>
 
-      <label>
-        {t("export.classJson")}
-        <input
-          type="file"
-          accept="application/json"
-          onChange={(e) => setClassFile(e.target.files?.[0] ?? null)}
-        />
-      </label>
-      <label>
-        {t("export.objectJson")}
-        <input
-          type="file"
-          accept="application/json"
-          onChange={(e) => setObjectFile(e.target.files?.[0] ?? null)}
-        />
-      </label>
-      <button type="button" onClick={() => void onImport()} disabled={!classFile || !objectFile}>
-        {t("actions.import")}
-      </button>
+      {/* Import is a different kind of operation: it REPLACES the draft rather
+          than reporting on it. The two file pickers are its inputs, so they
+          belong here with it. Sitting between Export and Import — as they did
+          — they read as though the export produced them. */}
+      <div className="toolbar__import">
+        <label className="field">
+          {t("export.classJson")}
+          <input
+            type="file"
+            accept="application/json"
+            onChange={(e) => setClassFile(e.target.files?.[0] ?? null)}
+          />
+        </label>
+        <label className="field">
+          {t("export.objectJson")}
+          <input
+            type="file"
+            accept="application/json"
+            onChange={(e) => setObjectFile(e.target.files?.[0] ?? null)}
+          />
+        </label>
+        <button
+          type="button"
+          className="button"
+          onClick={() => void onImport()}
+          disabled={!classFile || !objectFile}
+        >
+          {t("actions.import")}
+        </button>
+      </div>
 
-      {alertKey ? <p role="alert">{t(alertKey)}</p> : null}
+      {alertKey ? (
+        <p className="alert" role="alert">
+          {t(alertKey)}
+        </p>
+      ) : null}
       <Findings findings={findings} />
     </section>
   );

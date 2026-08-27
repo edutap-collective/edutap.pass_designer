@@ -7,12 +7,21 @@ export function FrontRows() {
   const { t } = useTranslation();
 
   return (
-    <fieldset>
-      <legend>{t("tabs.front")}</legend>
+    <fieldset className="panel">
+      <legend className="panel__legend">{t("tabs.front")}</legend>
 
       {draft.front_rows.map((row, rowIndex) => (
-        <div key={rowIndex}>
+        <div className="row" key={rowIndex}>
+          {/* Without this the row is a line of anonymous dropdowns: the row
+              number lives only in the aria-labels below, so a sighted person
+              reads nothing at all. Hidden from the accessibility tree because
+              the controls already carry that same name. */}
+          <span className="row__marker" aria-hidden="true">
+            {t("rows.row", { number: rowIndex + 1 })}
+          </span>
+
           <select
+            className="row__count"
             value={row.cells.length}
             aria-label={t("rows.row", { number: rowIndex + 1 })}
             onChange={(e) =>
@@ -30,6 +39,7 @@ export function FrontRows() {
 
           {row.cells.map((cell, cellIndex) => (
             <select
+              className="row__cell"
               key={cellIndex}
               value={cell.first?.fallback_chain[0]?.module_id ?? ""}
               aria-label={t("rows.cell", { row: rowIndex + 1, cell: cellIndex + 1 })}
@@ -54,6 +64,7 @@ export function FrontRows() {
 
           <button
             type="button"
+            className="row__remove"
             aria-label={t("rows.remove", { number: rowIndex + 1 })}
             onClick={() => dispatch({ type: "removeRow", row: rowIndex })}
           >
@@ -62,7 +73,11 @@ export function FrontRows() {
         </div>
       ))}
 
-      <button type="button" onClick={() => dispatch({ type: "addRow" })}>
+      <button
+        type="button"
+        className="button button--quiet"
+        onClick={() => dispatch({ type: "addRow" })}
+      >
         {t("actions.addRow")}
       </button>
     </fieldset>
