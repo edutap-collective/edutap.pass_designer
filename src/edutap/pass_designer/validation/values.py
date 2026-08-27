@@ -4,10 +4,12 @@ from collections.abc import Mapping
 
 from ..draft.models import Draft
 from ..platforms.google import families
-from ._common import Finding, bindings, check_bound_value, check_constant
+from ._common import FindingTemplate, bindings, check_bound_value, check_constant
 
 
-def check_head_values(draft: Draft, catalogue: Mapping[str, str]) -> list[Finding]:
+def check_head_values(
+    draft: Draft, catalogue: Mapping[str, str]
+) -> list[FindingTemplate]:
     """Check the head fields, where binding depends on which side they land on.
 
     A class-scoped head field cannot be bound. The class IS the template: one
@@ -18,7 +20,7 @@ def check_head_values(draft: Draft, catalogue: Mapping[str, str]) -> list[Findin
     scopes = {
         field.key: field.scope for field in families.get(draft.family).head_fields
     }
-    findings: list[Finding] = []
+    findings: list[FindingTemplate] = []
     for key, value in sorted(draft.head.items()):
         where = f"head/{key}"
         bound_keys = bindings(value)
@@ -32,15 +34,16 @@ def check_head_values(draft: Draft, catalogue: Mapping[str, str]) -> list[Findin
             continue
         if scope == "class":
             findings.append(
-                Finding(
+                FindingTemplate(
                     severity="error",
                     location=where,
-                    message=(
-                        f"'{key}' is part of the class, which is the template "
-                        f"shared by every pass, so it cannot be bound to "
-                        f"'{bound_keys[0]}'; only object-scoped fields differ per "
-                        f"person"
+                    msgid=(
+                        "'%(key)s' is part of the class, which is the "
+                        "template shared by every pass, so it cannot be "
+                        "bound to '%(field_key)s'; only object-scoped "
+                        "fields differ per person"
                     ),
+                    params={"key": key, "field_key": bound_keys[0]},
                 )
             )
             continue
@@ -49,7 +52,7 @@ def check_head_values(draft: Draft, catalogue: Mapping[str, str]) -> list[Findin
     return findings
 
 
-def check_values(draft: Draft, catalogue: Mapping[str, str]) -> list[Finding]:
+def check_values(draft: Draft, catalogue: Mapping[str, str]) -> list[FindingTemplate]:
     """Check every string a draft carries into an export.
 
     The design says the export refuses a lone `$`. It has to refuse it

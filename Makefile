@@ -1,4 +1,4 @@
-.PHONY: lint reformat test-local test-integration docs
+.PHONY: lint reformat test-local test-integration docs locales
 
 lint:
 	uv run ruff check src tests
@@ -9,7 +9,10 @@ reformat:
 	uv run ruff format src tests
 	uv run ruff check --fix src tests
 
-test-local:
+locales: ## Compile the .po catalogues to .mo
+	uv run pybabel compile -d locales
+
+test-local: locales
 	uv run pytest tests -m "not integration"
 
 test-integration:

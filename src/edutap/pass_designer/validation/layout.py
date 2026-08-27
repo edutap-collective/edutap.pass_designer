@@ -2,7 +2,7 @@
 
 from ..draft.models import Cell, Draft, Line
 from ..platforms.google import families
-from ._common import MODULE_LIMIT, MODULE_WARNING_THRESHOLD, Finding
+from ._common import MODULE_LIMIT, MODULE_WARNING_THRESHOLD, FindingTemplate
 
 
 # Every surface of `Draft` that can carry a `Line` (and therefore a
@@ -46,7 +46,7 @@ def _lines(draft: Draft) -> list[tuple[str, Line]]:
     return found
 
 
-def check_field_paths(draft: Draft) -> list[Finding]:
+def check_field_paths(draft: Draft) -> list[FindingTemplate]:
     """Check that every `fieldPath` names a module the object carries.
 
     This is the check the whole package exists for: Google discards an
@@ -55,74 +55,89 @@ def check_field_paths(draft: Draft) -> list[Finding]:
     """
     text_ids = {module.module_id for module in draft.text_modules}
     image_ids = {module.module_id for module in draft.image_modules}
-    findings: list[Finding] = []
+    findings: list[FindingTemplate] = []
     for where, line in _lines(draft):
         for reference in line.fallback_chain:
             known = text_ids if reference.kind == "text" else image_ids
             if reference.module_id not in known:
                 findings.append(
-                    Finding(
+                    FindingTemplate(
                         severity="error",
                         location=where,
-                        message=(
-                            f"no {reference.kind} module '{reference.module_id}' "
-                            f"exists; Google discards this reference without "
-                            f"reporting it and the value never appears"
+                        msgid=(
+                            "no %(kind)s module '%(module_id)s' exists; "
+                            "Google discards this reference without "
+                            "reporting it and the value never appears"
                         ),
+                        params={
+                            "kind": reference.kind,
+                            "module_id": reference.module_id,
+                        },
                     )
                 )
     return findings
 
 
-def check_required_head_fields(draft: Draft) -> list[Finding]:
+def check_required_head_fields(draft: Draft) -> list[FindingTemplate]:
     """Check the fields Google demands when the class is created.
 
     The Pydantic models are more permissive than the API, so a draft can
     validate cleanly and still be rejected on insert.
     """
     descriptor = families.get(draft.family)
-    findings: list[Finding] = []
+    findings: list[FindingTemplate] = []
     for key in sorted(descriptor.required_on_create):
         if key == "reviewStatus":
             continue  # carries a default in the upstream model
         if not draft.head.get(key):
             findings.append(
-                Finding(
+                FindingTemplate(
                     severity="error",
                     location="head",
-                    message=f"Google requires '{key}' when the class is created",
+                    msgid="Google requires '%(key)s' when the class is created",
+                    params={"key": key},
                 )
             )
     return findings
 
 
-def check_volume(draft: Draft) -> list[Finding]:
+def check_volume(draft: Draft) -> list[FindingTemplate]:
     """Warn as a draft approaches Google's module limits, and refuse past them.
 
     Google accepts at most ten and drops the rest without reporting it.
     """
-    findings: list[Finding] = []
+    findings: list[FindingTemplate] = []
     for label, count in (
         ("text modules", len(draft.text_modules)),
         ("links", len(draft.link_modules)),
     ):
         if count > MODULE_LIMIT:
             findings.append(
-                Finding(
+                FindingTemplate(
                     severity="error",
                     location=label,
-                    message=(
-                        f"{count} {label}; Google accepts at most {MODULE_LIMIT} "
-                        f"and drops the rest without reporting it"
+                    msgid=(
+                        "%(count)d %(label)s; Google accepts at most "
+                        "%(limit)d and drops the rest without reporting it"
                     ),
+                    params={
+                        "count": count,
+                        "label": label,
+                        "limit": MODULE_LIMIT,
+                    },
                 )
             )
         elif count >= MODULE_WARNING_THRESHOLD:
             findings.append(
-                Finding(
+                FindingTemplate(
                     severity="warning",
                     location=label,
-                    message=f"{count} {label}; the limit is {MODULE_LIMIT}",
+                    msgid="%(count)d %(label)s; the limit is %(limit)d",
+                    params={
+                        "count": count,
+                        "label": label,
+                        "limit": MODULE_LIMIT,
+                    },
                 )
             )
     return findings

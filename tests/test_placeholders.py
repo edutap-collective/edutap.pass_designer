@@ -32,7 +32,12 @@ def test_a_lone_dollar_sign_is_reported() -> None:
     problems = check_dollar_signs("costs 5$")
 
     assert len(problems) == 1
-    assert "$" in problems[0]
+    msgid, params = problems[0]
+    assert params["position"] == 7
+    assert params["text"] == "costs 5$"
+    assert msgid % params == (
+        "lone '$' at position 7 in 'costs 5$': write '$$' for a literal dollar sign"
+    )
 
 
 def test_scan_reports_a_json_pointer_for_every_placeholder() -> None:
@@ -56,15 +61,17 @@ def test_malformed_placeholder_with_nested_dollar() -> None:
     problems = check_dollar_signs("${bad ${good}")
 
     assert len(problems) == 1
-    assert "bad ${good" in problems[0]
-    assert "field key" in problems[0].lower() or "malformed" in problems[0].lower()
+    msgid, params = problems[0]
+    assert params["field_key"] == "bad ${good"
+    assert "malformed" in msgid.lower()
 
 
 def test_malformed_placeholder_with_dollar_in_key() -> None:
     problems = check_dollar_signs("${a$b}")
 
     assert len(problems) == 1
-    assert "a$b" in problems[0]
+    _, params = problems[0]
+    assert params["field_key"] == "a$b"
 
 
 def test_single_segment_field_key_is_valid() -> None:

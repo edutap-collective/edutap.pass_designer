@@ -75,6 +75,40 @@ async def test_validation_reports_an_unresolvable_field_path(
     assert any(f["severity"] == "error" for f in response.json()["findings"])
 
 
+async def test_findings_follow_the_accept_language_header(
+    client: AsyncClient,
+) -> None:
+    broken = {**DRAFT, "text_modules": []}
+
+    english = await client.post(
+        "/designer/v1/validate",
+        json={"draft": broken},
+        headers={"Accept-Language": "en"},
+    )
+    german = await client.post(
+        "/designer/v1/validate",
+        json={"draft": broken},
+        headers={"Accept-Language": "de-DE,de;q=0.9"},
+    )
+
+    english_messages = [f["message"] for f in english.json()["findings"]]
+    german_messages = [f["message"] for f in german.json()["findings"]]
+
+    assert english_messages
+    assert german_messages
+    assert english_messages != german_messages
+    assert len(english_messages) == len(german_messages)
+
+
+async def test_the_catalogue_is_offered_for_binding(client: AsyncClient) -> None:
+    response = await client.get("/designer/v1/catalogue")
+
+    assert response.status_code == 200
+    keys = [field["key"] for field in response.json()]
+    assert "person.display_name" in keys
+    assert all("value_type" in field for field in response.json())
+
+
 async def test_export_returns_all_three_artefacts(client: AsyncClient) -> None:
     response = await client.post(
         "/designer/v1/export",

@@ -298,3 +298,29 @@ def test_a_bound_head_field_unknown_to_the_catalogue_warns() -> None:
         f.message for f in validate(draft, CATALOGUE) if f.severity == "warning"
     ]
     assert any("person.nonesuch" in message for message in warnings)
+
+
+# ---------------------------------------------------------------------------
+# `language` decides only how the messages read; which findings exist does
+# not depend on it — see `validate`'s docstring.
+# ---------------------------------------------------------------------------
+
+
+def test_the_language_argument_changes_the_message_text() -> None:
+    draft = Draft(family="loyalty", head={"issuerName": "Example University"})
+
+    english = validate(draft, CATALOGUE, language="en")
+    german = validate(draft, CATALOGUE, language="de")
+
+    assert [f.message for f in english] != [f.message for f in german]
+    assert [(f.severity, f.location) for f in english] == [
+        (f.severity, f.location) for f in german
+    ]
+
+
+def test_an_unsupported_language_falls_back_to_english() -> None:
+    draft = Draft(family="loyalty", head={"issuerName": "Example University"})
+
+    findings = validate(draft, CATALOGUE, language="fr")
+
+    assert findings == validate(draft, CATALOGUE, language="en")

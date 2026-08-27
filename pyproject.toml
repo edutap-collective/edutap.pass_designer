@@ -17,6 +17,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "babel>=2.16",
     "pdbp>=1.6",
     "ruff>=0.16",
     { include-group = "test" },
