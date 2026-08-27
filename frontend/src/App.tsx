@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { client } from "./api/client";
@@ -6,6 +7,7 @@ import { FrontRows } from "./components/FrontRows";
 import { HeadFields } from "./components/HeadFields";
 import { ModuleList } from "./components/ModuleList";
 import { DraftProvider } from "./draft/context";
+import { Card } from "./preview/Card";
 
 function Editor() {
   const { t } = useTranslation();
@@ -28,10 +30,26 @@ function Editor() {
     },
   });
 
+  const personas = useQuery({
+    queryKey: ["personas"],
+    queryFn: async () => {
+      const { data, error } = await client.GET("/designer/v1/personas");
+      if (error) throw new Error("personas failed");
+      return data;
+    },
+  });
+
   // Loyalty is the only registered family; the six others need a backend round
   // first. Reading it from the list rather than hard-coding the head fields
   // means that round costs no change here.
   const loyalty = families.data?.find((f) => f.family_id === "loyalty");
+
+  // An unselected persona_id falls back to the first persona in the list, so
+  // the preview shows a card from the moment personas load — no separate
+  // "nothing chosen yet" state to design for.
+  const [personaId, setPersonaId] = useState("");
+  const selectedPersona =
+    personas.data?.find((p) => p.persona_id === personaId) ?? personas.data?.[0];
 
   if (!loyalty || !catalogue.data) return <p>{t("app.loading")}</p>;
 
@@ -54,6 +72,24 @@ function Editor() {
 
           <ModuleList catalogue={catalogue.data} />
         </form>
+
+        <aside>
+          <label>
+            {t("preview.persona")}
+            <select
+              value={selectedPersona?.persona_id ?? ""}
+              onChange={(e) => setPersonaId(e.target.value)}
+            >
+              {personas.data?.map((persona) => (
+                <option key={persona.persona_id} value={persona.persona_id}>
+                  {persona.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <Card persona={selectedPersona} />
+        </aside>
       </div>
     </main>
   );

@@ -1,0 +1,22 @@
+/* Proportions and wrapping have to be right; pixels do not. A Wallet card is
+   roughly 1.6:1 and the text wraps rather than truncating, which is what a
+   layout decision actually turns on. */
+.card {
+  aspect-ratio: 1.6;
+  max-width: 26rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-wrap: anywhere;
+}
+.card__logo { width: 2.5rem; height: 2.5rem; border-radius: 50%; object-fit: cover; }
+.card__issuer { font-size: 0.75rem; opacity: 0.85; }
+.card__program { font-size: 1.25rem; font-weight: 600; }
+.card__row { display: grid; gap: 0.5rem; }
+.card__label { font-size: 0.7rem; opacity: 0.8; }
+.card__value { font-size: 0.9rem; }
+.card__code { align-self: center; margin-top: auto; background: #fff; }
+.card__nocode { margin-top: auto; font-size: 0.7rem; opacity: 0.6; }
