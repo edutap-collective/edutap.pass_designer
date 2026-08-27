@@ -114,7 +114,30 @@ export function Card({ persona }: { persona: Persona | undefined }) {
           {t("preview.unsupportedCode", { type: barcodeType })}
         </div>
       ) : (
-        <div className="card__nocode">{t("preview.noCode")}</div>
+        <div className="card__nfc">
+          {/* The contactless mark, drawn at the position a barcode would
+              occupy. It keeps the layout consequence of having no code
+              visible — the point the spec makes about this being the normal
+              case — and states it in the vernacular of the object itself:
+              this pass is tapped, not scanned. Decorative, so it is hidden
+              from the accessibility tree; the caption carries the meaning. */}
+          <svg
+            className="card__nfc-mark"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          >
+            <path d="M6.57 8.94A4 4 0 0 1 6.57 15.06" />
+            <path d="M8.5 6.64A7 7 0 0 1 8.5 17.36" />
+            <path d="M10.43 4.34A10 10 0 0 1 10.43 19.66" />
+            <path d="M12.36 2.04A13 13 0 0 1 12.36 21.96" />
+          </svg>
+          <span>{t("preview.noCode")}</span>
+        </div>
       )}
     </div>
   );

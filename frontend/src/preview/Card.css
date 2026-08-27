@@ -11,6 +11,12 @@
   flex-direction: column;
   gap: 0.5rem;
   overflow-wrap: anywhere;
+  /* The card is the one object on the page with depth. Everything around it
+     is flat paper, so the shadow is what makes it read as a thing lying on
+     the proof sheet rather than as one more panel. */
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 12%),
+    0 10px 28px rgb(0 0 0 / 18%);
 }
 .card__logo { width: 2.5rem; height: 2.5rem; border-radius: 50%; object-fit: cover; }
 .card__issuer { font-size: 0.75rem; opacity: 0.85; }
@@ -20,3 +26,19 @@
 .card__value { font-size: 0.9rem; }
 .card__code { align-self: center; margin-top: auto; background: #fff; }
 .card__nocode { margin-top: auto; font-size: 0.7rem; opacity: 0.6; }
+
+/* The no-code case: the contactless mark plus its caption, in the slot a
+   barcode would otherwise fill. `.card__nocode` stays for the other case —
+   a symbology that was chosen but cannot be drawn yet — which is a message,
+   not a statement about how the pass is read. */
+.card__nfc {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  text-align: center;
+  opacity: 0.7;
+}
+.card__nfc-mark { width: 1.9rem; height: 1.9rem; }
