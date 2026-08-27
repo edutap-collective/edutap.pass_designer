@@ -30,7 +30,8 @@
   },
   "preview": {
     "persona": "Vorschauperson",
-    "noCode": "Kein Code — nur NFC"
+    "noCode": "Kein Code — nur NFC",
+    "unsupportedCode": "Keine Vorschau für {{type}} — dieses Symbol kann noch nicht gezeichnet werden"
   },
   "findings": {
     "none": "Keine Probleme gefunden.",

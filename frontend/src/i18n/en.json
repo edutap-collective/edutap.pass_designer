@@ -30,7 +30,8 @@
   },
   "preview": {
     "persona": "Preview person",
-    "noCode": "No code — NFC only"
+    "noCode": "No code — NFC only",
+    "unsupportedCode": "No preview for {{type}} — this symbology cannot be drawn yet"
   },
   "findings": {
     "none": "No problems found.",

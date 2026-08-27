@@ -9,8 +9,9 @@ import "./Card.css";
 // Google's barcode symbologies, mapped to the BWIPP encoder that draws them.
 // TEXT_ONLY draws no code by definition and is correctly absent here. A type
 // Google defines but this map does not carry (e.g. the unspecified default)
-// is handled by leaving the code area empty rather than drawing something
-// wrong — see the render below.
+// is never drawn wrong — the render below says explicitly that it cannot
+// preview that type, rather than staying silent about a code that was
+// actually chosen.
 const ENCODERS: Record<string, string> = {
   AZTEC: "azteccode",
   CODE_39: "code39",
@@ -104,11 +105,15 @@ export function Card({ persona }: { persona: Persona | undefined }) {
           moves the layout, so it is shown rather than reserving space for
           it, but only when no symbology was chosen at all. A symbology the
           encoder map does not carry is a different situation — a code WAS
-          chosen — so it is left genuinely empty rather than mislabelled as
-          "NFC only" or drawn as something it is not. */}
+          chosen — so it says as much rather than staying silent (which
+          would read as a bug, not a decision) or drawing something wrong. */}
       {barcodeType && encoder ? (
         <canvas ref={canvasRef} className="card__code" data-testid="card-code" />
-      ) : barcodeType ? null : (
+      ) : barcodeType ? (
+        <div className="card__nocode">
+          {t("preview.unsupportedCode", { type: barcodeType })}
+        </div>
+      ) : (
         <div className="card__nocode">{t("preview.noCode")}</div>
       )}
     </div>
