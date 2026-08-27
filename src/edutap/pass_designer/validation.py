@@ -9,16 +9,38 @@ cannot be found by looking at either side alone.
 from collections.abc import Mapping
 from typing import Literal
 
-from pydantic import BaseModel
+from edutap.wallet_google.models.datatypes.enums import BarcodeType
+from pydantic import AnyUrl, BaseModel, TypeAdapter, ValidationError
 
-from .draft.models import Cell, Draft, Line
-from .placeholders import check_dollar_signs
+from .draft.models import Cell, Draft, Line, TransitOption
+from .placeholders import FIELD_KEY_PATTERN, check_dollar_signs, scan
 from .platforms.google import families
 
 MODULE_LIMIT = 10
 MODULE_WARNING_THRESHOLD = 6
 
 Severity = Literal["error", "warning"]
+
+#: The exporter builds `ImageUri(uri=...)`, whose `uri` is a strict `AnyUrl`
+#: upstream. Validating with the same adapter means this check and the export
+#: cannot disagree about what counts as a URL.
+_URL_ADAPTER: TypeAdapter[AnyUrl] = TypeAdapter(AnyUrl)
+
+_BARCODE_TYPES = frozenset(member.value for member in BarcodeType)
+
+
+def _is_url(value: str) -> bool:
+    """Return True when the exporter would accept `value` as an image URI."""
+    try:
+        _URL_ADAPTER.validate_python(value)
+    except ValidationError:
+        return False
+    return True
+
+
+def _bindings(text: str) -> list[str]:
+    """Return every field key bound inside `text`, in order."""
+    return [field_key for _, field_key in scan(text)]
 
 
 class Finding(BaseModel):
@@ -137,25 +159,234 @@ def _check_volume(draft: Draft) -> list[Finding]:
     return findings
 
 
-def _check_values(draft: Draft, catalogue: Mapping[str, str]) -> list[Finding]:
+def _check_bound_value(
+    where: str, value: str, catalogue: Mapping[str, str]
+) -> list[Finding]:
+    """Check a value the designer marked as bound to a provider field."""
+    if not value:
+        return [
+            Finding(
+                severity="error",
+                location=where,
+                message=(
+                    "is marked as bound but names no field; it would export as "
+                    "'${}', import back as constant text, and then fail to "
+                    "export again"
+                ),
+            )
+        ]
+    if not FIELD_KEY_PATTERN.match(value):
+        return [
+            Finding(
+                severity="error",
+                location=where,
+                message=(
+                    f"'{value}' is not a field key; a binding is a dotted "
+                    f"identifier such as 'person.display_name'"
+                ),
+            )
+        ]
+    if value not in catalogue:
+        return [
+            Finding(
+                severity="warning",
+                location=where,
+                message=(
+                    f"'{value}' is not in the field catalogue; the pass builder "
+                    f"will not be able to fill it"
+                ),
+            )
+        ]
+    return []
+
+
+def _check_constant(where: str, value: str) -> list[Finding]:
+    """Check a value that is written through to Google unchanged."""
+    return [
+        Finding(severity="error", location=where, message=problem)
+        for problem in check_dollar_signs(value)
+    ]
+
+
+def _check_head_values(draft: Draft, catalogue: Mapping[str, str]) -> list[Finding]:
+    """Check the head fields, where binding depends on which side they land on.
+
+    A class-scoped head field cannot be bound. The class IS the template: one
+    class serves every pass issued from it, so a per-person value has no
+    meaning there. Written through, the cardholder sees the literal
+    `${affiliation.primary}` as the issuer of their card.
+    """
+    scopes = {
+        field.key: field.scope for field in families.get(draft.family).head_fields
+    }
     findings: list[Finding] = []
+    for key, value in sorted(draft.head.items()):
+        where = f"head/{key}"
+        bindings = _bindings(value)
+        if not bindings:
+            findings.extend(_check_constant(where, value))
+            continue
+        scope = scopes.get(key)
+        if scope is None:
+            # The descriptor does not declare this key, so the exporter drops
+            # it. `_check_required_head_fields` owns what must be present.
+            continue
+        if scope == "class":
+            findings.append(
+                Finding(
+                    severity="error",
+                    location=where,
+                    message=(
+                        f"'{key}' is part of the class, which is the template "
+                        f"shared by every pass, so it cannot be bound to "
+                        f"'{bindings[0]}'; only object-scoped fields differ per "
+                        f"person"
+                    ),
+                )
+            )
+            continue
+        for field_key in bindings:
+            findings.extend(_check_bound_value(where, field_key, catalogue))
+    return findings
+
+
+def _check_values(draft: Draft, catalogue: Mapping[str, str]) -> list[Finding]:
+    """Check every string a draft carries into an export.
+
+    The design says the export refuses a lone `$`. It has to refuse it
+    everywhere, not only in text modules: a stray dollar sign reaches the
+    cardholder as a literal `$` from whichever surface it sat on.
+    """
+    findings = _check_head_values(draft, catalogue)
+
     for module in draft.text_modules:
         where = f"module '{module.module_id}'"
         if module.bound:
-            if module.value not in catalogue:
+            findings.extend(_check_bound_value(where, module.value, catalogue))
+        else:
+            findings.extend(_check_constant(where, module.value))
+
+    for module in draft.image_modules:
+        where = f"image module '{module.module_id}'"
+        if module.bound:
+            findings.extend(_check_bound_value(where, module.uri, catalogue))
+        else:
+            findings.extend(_check_constant(where, module.uri))
+
+    for index, link in enumerate(draft.link_modules):
+        where = f"link {index + 1}"
+        findings.extend(_check_constant(where, link.uri))
+        if link.description:
+            findings.extend(_check_constant(where, link.description))
+
+    for label, value in (
+        ("barcode value", draft.redemption.barcode_value),
+        ("smart tap value", draft.redemption.redemption_value),
+    ):
+        if value:
+            findings.extend(_check_constant(label, value))
+
+    return findings
+
+
+def _check_exportable(draft: Draft) -> list[Finding]:
+    """Predict what the exporter would refuse.
+
+    Without these, a draft passes validation and then fails the export. That
+    is the worst division of labour available: `/validate` is what an editor
+    calls on every keystroke, `/export` what a person presses once at the end.
+    The exporter keeps its own guards; they are the backstop, not the first
+    line.
+    """
+    descriptor = families.get(draft.family)
+    kinds = {field.key: field.kind for field in descriptor.head_fields}
+    scopes = {field.key: field.scope for field in descriptor.head_fields}
+    findings: list[Finding] = []
+
+    if isinstance(draft.list_view.first_row, TransitOption):
+        findings.append(
+            Finding(
+                severity="error",
+                location="list/first row",
+                message=(
+                    "a transit list option is not supported yet; the export "
+                    "would refuse it"
+                ),
+            )
+        )
+
+    for key, value in sorted(draft.head.items()):
+        if not value:
+            continue
+        where = f"head/{key}"
+        kind = kinds.get(key)
+        if kind == "localized_text":
+            findings.append(
+                Finding(
+                    severity="error",
+                    location=where,
+                    message=(
+                        f"'{key}' is a localized head field, which is not "
+                        f"supported yet; the export would refuse it"
+                    ),
+                )
+            )
+        elif kind == "image_uri":
+            if _bindings(value):
+                # A class-scoped binding is already reported, with the better
+                # reason, by `_check_head_values`.
+                if scopes.get(key) != "class":
+                    findings.append(
+                        Finding(
+                            severity="error",
+                            location=where,
+                            message=(
+                                f"'{key}' is an image field and cannot carry a "
+                                f"placeholder; upstream types the image URI as "
+                                f"a strict URL"
+                            ),
+                        )
+                    )
+            elif not _is_url(value):
                 findings.append(
                     Finding(
-                        severity="warning",
+                        severity="error",
                         location=where,
                         message=(
-                            f"'{module.value}' is not in the field catalogue; "
-                            f"the pass builder will not be able to fill it"
+                            f"'{key}' must be a URL Google can fetch; "
+                            f"'{value}' is not one"
                         ),
                     )
                 )
+
+    barcode_type = draft.redemption.barcode_type
+    if barcode_type and barcode_type not in _BARCODE_TYPES:
+        findings.append(
+            Finding(
+                severity="error",
+                location="barcode",
+                message=(
+                    f"'{barcode_type}' is not a barcode type Google knows; the "
+                    f"export would refuse it"
+                ),
+            )
+        )
+
+    for module in draft.image_modules:
+        if module.bound or not module.uri:
             continue
-        for problem in check_dollar_signs(module.value):
-            findings.append(Finding(severity="error", location=where, message=problem))
+        if not _is_url(module.uri):
+            findings.append(
+                Finding(
+                    severity="error",
+                    location=f"image module '{module.module_id}'",
+                    message=(
+                        f"image module '{module.module_id}' must be a URL "
+                        f"Google can fetch; '{module.uri}' is not one"
+                    ),
+                )
+            )
+
     return findings
 
 
@@ -166,4 +397,5 @@ def validate(draft: Draft, catalogue: Mapping[str, str]) -> list[Finding]:
         *_check_required_head_fields(draft),
         *_check_volume(draft),
         *_check_values(draft, catalogue),
+        *_check_exportable(draft),
     ]

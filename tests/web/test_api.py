@@ -99,9 +99,16 @@ async def test_export_refuses_a_draft_with_errors(client: AsyncClient) -> None:
     assert response.status_code == 422
 
 
-# --- Fix 1: ordinary user input must not 500. Each row of the review's table
-# is reproduced here: `/validate` reports zero errors, and `/export` answers
-# 422 with a findings list instead of a bare 500. ---
+# --- Ordinary user input must not 500, and `/validate` must predict what
+# `/export` refuses.
+#
+# These five cases first appeared when the whole-branch review found them
+# answering `500 text/plain`. That was fixed; the assertion that `/validate`
+# reported nothing pinned the remaining half of the defect (issue #4): a
+# designer watched a green validator all session and learnt at the end that
+# the draft was never valid. Both halves are closed now, so each case asserts
+# the same thing twice over -- the validator names the problem, and the export
+# still refuses with a findings list. ---
 
 
 async def test_export_refuses_a_transit_option_in_the_list_view(
@@ -110,7 +117,7 @@ async def test_export_refuses_a_transit_option_in_the_list_view(
     draft = {**DRAFT, "list_view": {"first_row": {"option": "TWO_LEGS"}}}
 
     validated = await client.post("/designer/v1/validate", json={"draft": draft})
-    assert validated.json()["findings"] == []
+    assert [f for f in validated.json()["findings"] if f["severity"] == "error"]
 
     response = await client.post(
         "/designer/v1/export",
@@ -128,7 +135,7 @@ async def test_export_refuses_a_non_url_image_head_field(client: AsyncClient) ->
     draft = {**DRAFT, "head": {**DRAFT["head"], "programLogo": "not a url"}}
 
     validated = await client.post("/designer/v1/validate", json={"draft": draft})
-    assert validated.json()["findings"] == []
+    assert [f for f in validated.json()["findings"] if f["severity"] == "error"]
 
     response = await client.post(
         "/designer/v1/export",
@@ -147,7 +154,7 @@ async def test_export_refuses_a_placeholder_in_an_image_head_field(
     draft = {**DRAFT, "head": {**DRAFT["head"], "heroImage": "${person.photo}"}}
 
     validated = await client.post("/designer/v1/validate", json={"draft": draft})
-    assert validated.json()["findings"] == []
+    assert [f for f in validated.json()["findings"] if f["severity"] == "error"]
 
     response = await client.post(
         "/designer/v1/export",
@@ -162,7 +169,7 @@ async def test_export_refuses_an_unknown_barcode_type(client: AsyncClient) -> No
     draft = {**DRAFT, "redemption": {"barcode_type": "NOT_A_TYPE"}}
 
     validated = await client.post("/designer/v1/validate", json={"draft": draft})
-    assert validated.json()["findings"] == []
+    assert [f for f in validated.json()["findings"] if f["severity"] == "error"]
 
     response = await client.post(
         "/designer/v1/export",
@@ -184,7 +191,7 @@ async def test_export_refuses_a_malformed_unbound_image_uri(
     }
 
     validated = await client.post("/designer/v1/validate", json={"draft": draft})
-    assert validated.json()["findings"] == []
+    assert [f for f in validated.json()["findings"] if f["severity"] == "error"]
 
     response = await client.post(
         "/designer/v1/export",
