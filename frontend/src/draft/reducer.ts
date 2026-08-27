@@ -110,5 +110,14 @@ export function draftReducer(state: Draft, action: DraftAction): Draft {
 
     case "replaceDraft":
       return action.draft;
+
+    default: {
+      // Never reached while the union and the switch agree; TypeScript proves
+      // that by narrowing `action` to `never` here. It exists for the case the
+      // compiler cannot see — a replayed or deserialized action whose type
+      // string has drifted — where returning `undefined` would blank the draft.
+      const unhandled: never = action;
+      throw new Error(`unhandled draft action: ${JSON.stringify(unhandled)}`);
+    }
   }
 }
