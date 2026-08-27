@@ -2,13 +2,13 @@ import { useTranslation } from "react-i18next";
 import { SUPPORTED } from "../i18n";
 
 export function LanguageSwitcher() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
 
   return (
     <select
       value={i18n.resolvedLanguage}
       onChange={(event) => void i18n.changeLanguage(event.target.value)}
-      aria-label="Language"
+      aria-label={t("common.languageLabel")}
     >
       {SUPPORTED.map((code) => (
         <option key={code} value={code}>

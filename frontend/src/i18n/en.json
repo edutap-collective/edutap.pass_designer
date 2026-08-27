@@ -1,5 +1,6 @@
 {
   "app": { "title": "Pass Designer" },
+  "common": { "languageLabel": "Language" },
   "tabs": { "front": "Card front" },
   "actions": {
     "check": "Check",
