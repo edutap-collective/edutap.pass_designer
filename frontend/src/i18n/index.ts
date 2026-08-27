@@ -23,4 +23,20 @@ export function currentLanguage(): string {
   return i18n.resolvedLanguage ?? "en";
 }
 
+/**
+ * Keep `<html lang>` on the language the interface is actually showing.
+ *
+ * The document ships with a hard-coded `lang="en"`. Screen readers pick their
+ * pronunciation from that attribute, so a German interface left at "en" is
+ * read aloud by an English voice — which is not a cosmetic problem for
+ * someone who depends on it. Nothing else in the app touches the attribute,
+ * so the language switcher has to.
+ */
+function syncDocumentLanguage(language: string): void {
+  document.documentElement.lang = language;
+}
+
+i18n.on("languageChanged", syncDocumentLanguage);
+syncDocumentLanguage(currentLanguage());
+
 export default i18n;
