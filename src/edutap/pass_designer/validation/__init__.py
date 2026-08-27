@@ -13,9 +13,15 @@ this package would disagree about what a valid draft is.
 from collections.abc import Mapping
 
 from ..draft.models import Draft
+from ..i18n import DEFAULT, translator
 from ._common import MODULE_LIMIT, MODULE_WARNING_THRESHOLD, Finding, Severity
 from .exportable import check_exportable
-from .layout import check_field_paths, check_required_head_fields, check_volume
+from .layout import (
+    check_duplicate_module_ids,
+    check_field_paths,
+    check_required_head_fields,
+    check_volume,
+)
 from .values import check_values
 
 __all__ = [
@@ -27,12 +33,21 @@ __all__ = [
 ]
 
 
-def validate(draft: Draft, catalogue: Mapping[str, str]) -> list[Finding]:
-    """Return every problem found, errors and warnings together."""
-    return [
+def validate(
+    draft: Draft, catalogue: Mapping[str, str], language: str = DEFAULT
+) -> list[Finding]:
+    """Return every problem found, errors and warnings together.
+
+    `language` decides only how the messages read; which findings exist does
+    not depend on it.
+    """
+    templates = [
         *check_field_paths(draft),
+        *check_duplicate_module_ids(draft),
         *check_required_head_fields(draft),
         *check_volume(draft),
         *check_values(draft, catalogue),
         *check_exportable(draft),
     ]
+    translate = translator(language)
+    return [template.render(translate) for template in templates]

@@ -30,14 +30,18 @@ def source_field(text: str) -> str | None:
     return match.group(1) if match else None
 
 
-def check_dollar_signs(text: str) -> list[str]:
+def check_dollar_signs(text: str) -> list[tuple[str, dict[str, object]]]:
     """Return a problem for every dollar sign that is neither `$$` nor `${`.
 
     A lone dollar sign is the mistake that survives every other check and
     reaches the cardholder as a literal `$`. Also validates that field keys
     in placeholders are well-formed dotted identifiers.
+
+    Each problem is a `(msgid, params)` pair rather than a finished string —
+    the sentence has to exist before the values are put into it, so a caller
+    can translate it before rendering.
     """
-    problems: list[str] = []
+    problems: list[tuple[str, dict[str, object]]] = []
     index = 0
     while index < len(text):
         if text[index] != "$":
@@ -52,15 +56,21 @@ def check_dollar_signs(text: str) -> list[str]:
             field_key = match.group(1)
             if not FIELD_KEY_PATTERN.match(field_key):
                 problems.append(
-                    f"malformed field key '{field_key}' in placeholder "
-                    f"at position {index} in {text!r}: field keys must be "
-                    f"dotted identifiers (e.g., 'person.display_name')"
+                    (
+                        "malformed field key '%(field_key)s' in placeholder "
+                        "at position %(position)d; a field key is a dotted "
+                        "identifier",
+                        {"field_key": field_key, "position": index},
+                    )
                 )
             index += match.end()
             continue
         problems.append(
-            f"lone '$' at position {index} in {text!r}: "
-            f"write '$$' for a literal dollar sign"
+            (
+                "lone '$' at position %(position)d in %(text)r: write '$$' "
+                "for a literal dollar sign",
+                {"position": index, "text": text},
+            )
         )
         index += 1
     return problems

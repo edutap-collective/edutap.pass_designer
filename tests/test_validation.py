@@ -90,6 +90,50 @@ def test_the_eleventh_text_module_is_an_error() -> None:
     )
 
 
+def test_two_text_modules_sharing_an_id_is_an_error() -> None:
+    # The editor generates ids client-side; an imported artefact can carry a
+    # gap in its own numbering, and a freshly generated id can land on it
+    # exactly. This is the layer that must not let the resulting artefact
+    # out, whatever produced the collision.
+    draft = _draft(
+        text_modules=[
+            TextModuleDraft(module_id="module_2", value="a"),
+            TextModuleDraft(module_id="module_2", value="b"),
+        ]
+    )
+
+    findings = validate(draft, CATALOGUE)
+
+    assert any(f.severity == "error" and "module_2" in f.message for f in findings)
+
+
+def test_two_image_modules_sharing_an_id_is_an_error() -> None:
+    draft = _draft(
+        image_modules=[
+            ImageModuleDraft(module_id="photo", uri="https://example.org/a.png"),
+            ImageModuleDraft(module_id="photo", uri="https://example.org/b.png"),
+        ]
+    )
+
+    findings = validate(draft, CATALOGUE)
+
+    assert any(f.severity == "error" and "photo" in f.message for f in findings)
+
+
+def test_a_text_module_id_shared_with_an_image_module_is_not_a_collision() -> None:
+    # Text and image modules are distinct namespaces on the object
+    # (`textModulesData` vs. `imageModulesData`), so the same id in both is
+    # not the defect this check exists for.
+    draft = _draft(
+        text_modules=[TextModuleDraft(module_id="shared", value="a")],
+        image_modules=[
+            ImageModuleDraft(module_id="shared", uri="https://example.org/a.png")
+        ],
+    )
+
+    assert _errors(draft) == []
+
+
 def test_a_bound_field_unknown_to_the_catalogue_is_a_warning() -> None:
     draft = _draft(
         text_modules=[
@@ -298,3 +342,29 @@ def test_a_bound_head_field_unknown_to_the_catalogue_warns() -> None:
         f.message for f in validate(draft, CATALOGUE) if f.severity == "warning"
     ]
     assert any("person.nonesuch" in message for message in warnings)
+
+
+# ---------------------------------------------------------------------------
+# `language` decides only how the messages read; which findings exist does
+# not depend on it — see `validate`'s docstring.
+# ---------------------------------------------------------------------------
+
+
+def test_the_language_argument_changes_the_message_text() -> None:
+    draft = Draft(family="loyalty", head={"issuerName": "Example University"})
+
+    english = validate(draft, CATALOGUE, language="en")
+    german = validate(draft, CATALOGUE, language="de")
+
+    assert [f.message for f in english] != [f.message for f in german]
+    assert [(f.severity, f.location) for f in english] == [
+        (f.severity, f.location) for f in german
+    ]
+
+
+def test_an_unsupported_language_falls_back_to_english() -> None:
+    draft = Draft(family="loyalty", head={"issuerName": "Example University"})
+
+    findings = validate(draft, CATALOGUE, language="fr")
+
+    assert findings == validate(draft, CATALOGUE, language="en")

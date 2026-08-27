@@ -8,3 +8,7 @@ build/
 .pytest_cache/
 .mypy_cache/
 .superpowers/
+*.mo
+frontend/node_modules/
+frontend/openapi.json
+src/edutap/pass_designer/web/static/

@@ -17,6 +17,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "babel>=2.16",
     "pdbp>=1.6",
     "ruff>=0.16",
     { include-group = "test" },
@@ -35,6 +36,10 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/edutap"]
+artifacts = [
+    "src/edutap/pass_designer/locales/**/*.mo",
+    "src/edutap/pass_designer/web/static/**/*",
+]
 
 [tool.ruff]
 line-length = 88

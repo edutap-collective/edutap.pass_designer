@@ -1,15 +1,16 @@
 """The routes the editor consumes."""
 
-from typing import Any
+from typing import Annotated, Any
 
 import anyio.to_thread
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, ValidationError
 
 from ...draft.models import Draft
 from ...exporter.class_json import build_class
 from ...exporter.mappings import build_mappings
 from ...exporter.object_json import build_object
+from ...i18n import negotiate
 from ...importer.reader import read
 from ...personas.catalogue import (
     CatalogueError,
@@ -24,6 +25,13 @@ from ...settings import Settings, get_settings
 from ...validation import Finding, validate
 
 router = APIRouter(prefix="/designer/v1", tags=["designer"])
+
+
+def language(
+    accept_language: Annotated[str | None, Header()] = None,
+) -> str:
+    """Resolve the caller's preferred language from `Accept-Language`."""
+    return negotiate(accept_language)
 
 
 class ValidateRequest(BaseModel):
@@ -172,12 +180,38 @@ async def list_families() -> list[FamilyResponse]:
     ]
 
 
-@router.get("/personas")
+@router.get(
+    "/personas",
+    responses={500: {"model": CatalogueErrorResponse}},
+)
 async def list_personas(
     settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> list[Persona]:
     """Return the preview personas, generated from the loaded catalogue."""
-    return build_personas(await _load_catalogue(settings))
+    try:
+        catalogue = await _load_catalogue(settings)
+    except CatalogueError as error:
+        raise _catalogue_error(error) from error
+    return build_personas(catalogue)
+
+
+@router.get(
+    "/catalogue",
+    responses={500: {"model": CatalogueErrorResponse}},
+)
+async def list_catalogue(
+    settings: Settings = Depends(get_settings),  # noqa: B008
+) -> list[CatalogueField]:
+    """Return the fields a data provider can deliver.
+
+    The editor binds values against this list, so a field key cannot be
+    mistyped. `CatalogueField` is the shape `edutap.pass_builder` already
+    defines; nothing new is invented here.
+    """
+    try:
+        return await _load_catalogue(settings)
+    except CatalogueError as error:
+        raise _catalogue_error(error) from error
 
 
 @router.post(
@@ -189,6 +223,7 @@ async def list_personas(
 )
 async def validate_draft(
     request: ValidateRequest,
+    lang: Annotated[str, Depends(language)],
     settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> ValidateResponse:
     """Return every problem with a draft, without exporting anything."""
@@ -198,7 +233,7 @@ async def validate_draft(
         raise _catalogue_error(error) from error
 
     try:
-        findings = validate(request.draft, catalogue)
+        findings = validate(request.draft, catalogue, language=lang)
     except KeyError as error:
         raise _unknown_family_error(error) from error
 
@@ -215,6 +250,7 @@ async def validate_draft(
 )
 async def export_draft(
     request: ExportRequest,
+    lang: Annotated[str, Depends(language)],
     settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> ExportResponse:
     """Return the three artefacts, refusing a draft that carries errors."""
@@ -224,7 +260,7 @@ async def export_draft(
         raise _catalogue_error(error) from error
 
     try:
-        findings = validate(request.draft, catalogue)
+        findings = validate(request.draft, catalogue, language=lang)
     except KeyError as error:
         raise _unknown_family_error(error) from error
 

@@ -1,0 +1,61 @@
+{
+  "app": {
+    "title": "Pass Designer",
+    "loading": "Loading…",
+    "loadFailed": "Loading failed. Reload the page or try again later."
+  },
+  "common": {
+    "languageLabel": "Language"
+  },
+  "tabs": {
+    "front": "Card front"
+  },
+  "actions": {
+    "check": "Check",
+    "import": "Import…",
+    "export": "Export",
+    "addRow": "Add row",
+    "addModule": "Add module"
+  },
+  "check": {
+    "failed": "The check failed. The draft was not re-checked — try again."
+  },
+  "head": {
+    "legend": "Card"
+  },
+  "modules": {
+    "legend": "Modules",
+    "shared": "Shared by every view — the front, the back and the overview row all reference these.",
+    "constant": "Fixed value",
+    "bound": "Filled per person",
+    "header": "Header",
+    "value": "Value",
+    "field": "Field"
+  },
+  "preview": {
+    "persona": "Preview person",
+    "noCode": "No code — NFC only",
+    "unsupportedCode": "No preview for {{type}} — this symbology cannot be drawn yet"
+  },
+  "findings": {
+    "legend": "Findings",
+    "none": "No problems found.",
+    "error": "Error",
+    "warning": "Warning",
+    "notCheckedYet": "Not checked yet."
+  },
+  "export": {
+    "classJson": "Class JSON",
+    "objectJson": "Object JSON",
+    "mappings": "Mapping rules",
+    "refused": "The export was refused. Fix the errors below and try again."
+  },
+  "import": {
+    "failed": "The import failed. Check the files and try again."
+  },
+  "rows": {
+    "row": "Row {{number}}",
+    "cell": "Row {{row}}, cell {{cell}}",
+    "remove": "Remove row {{number}}"
+  }
+}

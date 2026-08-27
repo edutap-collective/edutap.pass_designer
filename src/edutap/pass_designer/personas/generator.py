@@ -15,7 +15,7 @@ string: `name_*` routinely wraps the name in academic titles and degree
 suffixes for `de_DE` and `tr_TR` ("Prof. Liselotte Bien B.Sc."), and a
 whitespace split then misattributes the suffix as the family name. All six
 part providers were checked to resolve on a single-locale `Faker` instance
-for all five locales below (Faker 40.37.0) before this table was trusted —
+for all seven locales below (Faker 40.37.0) before this table was trusted —
 see the task report for the per-locale results. A locale missing a provider
 would be dropped rather than falling back to a composed name or a different
 gender's provider — a persona that lies about its own gender or borrows
@@ -39,6 +39,8 @@ PERSONA_RECIPES: Sequence[tuple[str, str, str, str, bool]] = (
     ("fr-nonbinary", "French, non-binary", "fr_FR", "non-binary", False),
     ("tr-female", "Turkish, female", "tr_TR", "female", False),
     ("zh-male", "Chinese, male", "zh_CN", "male", False),
+    ("sv-female", "Swedish, female", "sv_SE", "female", False),
+    ("pt-male", "Portuguese, male", "pt_PT", "male", False),
     ("sparse", "Sparse — many fields empty", "de_DE", "non-binary", True),
 )
 

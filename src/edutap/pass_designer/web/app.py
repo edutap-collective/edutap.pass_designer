@@ -1,9 +1,20 @@
 """The FastAPI application."""
 
-from fastapi import FastAPI
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from ..settings import get_settings
 from .routers import design
+
+#: Where the built SPA lives, if it was built at all (`static/` is
+#: gitignored — a developer who has never run `make build-frontend` has
+#: none). A module-level attribute rather than a local inside `create_app()`
+#: so a test can monkeypatch it to a `tmp_path` and exercise both branches of
+#: the check below without depending on the state of this checkout.
+STATIC_DIR = Path(__file__).parent / "static"
 
 
 def create_app() -> FastAPI:
@@ -15,6 +26,38 @@ def create_app() -> FastAPI:
         root_path=settings.root_path,
     )
     app.include_router(design.router)
+
+    # The built SPA, if there is one. Mounted last and under a catch-all so
+    # the API keeps its paths: `/designer/v1/...` is matched by the router
+    # above and never reaches this.
+    static_dir = STATIC_DIR
+    if (static_dir / "index.html").exists():
+        app.mount(
+            "/assets",
+            StaticFiles(directory=static_dir / "assets"),
+            name="assets",
+        )
+
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def spa(full_path: str) -> FileResponse:
+            """Serve the single-page app for any path the API does not claim.
+
+            A single-page app owns its own routing, so a deep link has to
+            return index.html rather than a 404 — the browser then resolves
+            the route client-side.
+
+            FastAPI matches routes in registration order: `/designer/v1/...`
+            is claimed by the router above, so only paths the API does not
+            recognize reach this handler. That includes unknown API paths
+            like `/designer/v1/nonesuch`, which never registered a route of
+            its own — without the check below this handler would answer with
+            `200 text/html` instead of the router's `404`, and a client that
+            expects JSON would silently parse a page.
+            """
+            if full_path.startswith(design.router.prefix.lstrip("/")):
+                raise HTTPException(status_code=404)
+            return FileResponse(static_dir / "index.html")
+
     return app
 
 

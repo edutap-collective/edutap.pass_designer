@@ -1,0 +1,11 @@
+/* The one global stylesheet in the repository (every other one, such as
+   Card.css, is scoped to its own component and imported there). It exists
+   for the single layout rule the spec is explicit about: "Form on the left,
+   preview on the right, nothing between them." Deliberately minimal —
+   this round is about proving the interaction model, not visual polish. */
+.editor {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}

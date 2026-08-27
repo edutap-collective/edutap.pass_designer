@@ -1,0 +1,61 @@
+{
+  "app": {
+    "title": "Pass-Designer",
+    "loading": "Wird geladen…",
+    "loadFailed": "Laden fehlgeschlagen. Seite neu laden oder später erneut versuchen."
+  },
+  "common": {
+    "languageLabel": "Sprache"
+  },
+  "tabs": {
+    "front": "Kartenvorderseite"
+  },
+  "actions": {
+    "check": "Prüfen",
+    "import": "Importieren…",
+    "export": "Exportieren",
+    "addRow": "Zeile hinzufügen",
+    "addModule": "Modul hinzufügen"
+  },
+  "check": {
+    "failed": "Die Prüfung ist fehlgeschlagen. Der Entwurf wurde nicht neu geprüft — bitte erneut versuchen."
+  },
+  "head": {
+    "legend": "Karte"
+  },
+  "modules": {
+    "legend": "Module",
+    "shared": "Von allen Ansichten geteilt — Vorderseite, Rückseite und Übersichtszeile verweisen alle hierauf.",
+    "constant": "Fester Wert",
+    "bound": "Je Person befüllt",
+    "header": "Kopfzeile",
+    "value": "Wert",
+    "field": "Feld"
+  },
+  "preview": {
+    "persona": "Vorschauperson",
+    "noCode": "Kein Code — nur NFC",
+    "unsupportedCode": "Keine Vorschau für {{type}} — dieses Symbol kann noch nicht gezeichnet werden"
+  },
+  "findings": {
+    "legend": "Befunde",
+    "none": "Keine Probleme gefunden.",
+    "error": "Fehler",
+    "warning": "Warnung",
+    "notCheckedYet": "Noch nicht geprüft."
+  },
+  "export": {
+    "classJson": "Class-JSON",
+    "objectJson": "Object-JSON",
+    "mappings": "Zuordnungsregeln",
+    "refused": "Der Export wurde abgelehnt. Beheben Sie die Fehler unten und versuchen Sie es erneut."
+  },
+  "import": {
+    "failed": "Der Import ist fehlgeschlagen. Prüfen Sie die Dateien und versuchen Sie es erneut."
+  },
+  "rows": {
+    "row": "Zeile {{number}}",
+    "cell": "Zeile {{row}}, Zelle {{cell}}",
+    "remove": "Zeile {{number}} entfernen"
+  }
+}
