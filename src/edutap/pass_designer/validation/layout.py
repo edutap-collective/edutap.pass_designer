@@ -1,32 +1,8 @@
-"""Checks the Pydantic models cannot make.
+"""Checks on the shape of a draft: references, required fields, volume."""
 
-The most important one is the first. Google discards a `fieldPath` that
-refers to a module the object does not carry — silently. The row simply does
-not appear, with no error at any layer, which makes it the one defect that
-cannot be found by looking at either side alone.
-"""
-
-from collections.abc import Mapping
-from typing import Literal
-
-from pydantic import BaseModel
-
-from .draft.models import Cell, Draft, Line
-from .placeholders import check_dollar_signs
-from .platforms.google import families
-
-MODULE_LIMIT = 10
-MODULE_WARNING_THRESHOLD = 6
-
-Severity = Literal["error", "warning"]
-
-
-class Finding(BaseModel):
-    """One problem with a draft."""
-
-    severity: Severity
-    message: str
-    location: str
+from ..draft.models import Cell, Draft, Line
+from ..platforms.google import families
+from ._common import MODULE_LIMIT, MODULE_WARNING_THRESHOLD, Finding
 
 
 # Every surface of `Draft` that can carry a `Line` (and therefore a
@@ -70,7 +46,13 @@ def _lines(draft: Draft) -> list[tuple[str, Line]]:
     return found
 
 
-def _check_field_paths(draft: Draft) -> list[Finding]:
+def check_field_paths(draft: Draft) -> list[Finding]:
+    """Check that every `fieldPath` names a module the object carries.
+
+    This is the check the whole package exists for: Google discards an
+    unknown reference silently, so the row just never appears and nothing
+    anywhere reports it.
+    """
     text_ids = {module.module_id for module in draft.text_modules}
     image_ids = {module.module_id for module in draft.image_modules}
     findings: list[Finding] = []
@@ -92,7 +74,12 @@ def _check_field_paths(draft: Draft) -> list[Finding]:
     return findings
 
 
-def _check_required_head_fields(draft: Draft) -> list[Finding]:
+def check_required_head_fields(draft: Draft) -> list[Finding]:
+    """Check the fields Google demands when the class is created.
+
+    The Pydantic models are more permissive than the API, so a draft can
+    validate cleanly and still be rejected on insert.
+    """
     descriptor = families.get(draft.family)
     findings: list[Finding] = []
     for key in sorted(descriptor.required_on_create):
@@ -109,7 +96,11 @@ def _check_required_head_fields(draft: Draft) -> list[Finding]:
     return findings
 
 
-def _check_volume(draft: Draft) -> list[Finding]:
+def check_volume(draft: Draft) -> list[Finding]:
+    """Warn as a draft approaches Google's module limits, and refuse past them.
+
+    Google accepts at most ten and drops the rest without reporting it.
+    """
     findings: list[Finding] = []
     for label, count in (
         ("text modules", len(draft.text_modules)),
@@ -135,35 +126,3 @@ def _check_volume(draft: Draft) -> list[Finding]:
                 )
             )
     return findings
-
-
-def _check_values(draft: Draft, catalogue: Mapping[str, str]) -> list[Finding]:
-    findings: list[Finding] = []
-    for module in draft.text_modules:
-        where = f"module '{module.module_id}'"
-        if module.bound:
-            if module.value not in catalogue:
-                findings.append(
-                    Finding(
-                        severity="warning",
-                        location=where,
-                        message=(
-                            f"'{module.value}' is not in the field catalogue; "
-                            f"the pass builder will not be able to fill it"
-                        ),
-                    )
-                )
-            continue
-        for problem in check_dollar_signs(module.value):
-            findings.append(Finding(severity="error", location=where, message=problem))
-    return findings
-
-
-def validate(draft: Draft, catalogue: Mapping[str, str]) -> list[Finding]:
-    """Return every problem found, errors and warnings together."""
-    return [
-        *_check_field_paths(draft),
-        *_check_required_head_fields(draft),
-        *_check_volume(draft),
-        *_check_values(draft, catalogue),
-    ]
