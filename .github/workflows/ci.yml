@@ -47,6 +47,40 @@ jobs:
         # marker is executed rather than quietly skipped forever.
         run: make test-integration
 
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - run: make frontend-install
+
+      - name: Frontend lint and type check
+        run: make lint-frontend
+
+      - name: Frontend test
+        run: make test-frontend
+
+  types:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: uv sync --group dev --frozen
+      - run: make frontend-install
+      - run: make frontend-types
+      # Green here means both sides mean the same thing. A diff means someone
+      # changed the backend schema without regenerating.
+      - run: git diff --exit-code frontend/src/api/schema.d.ts
+
   image:
     runs-on: ubuntu-latest
     steps:

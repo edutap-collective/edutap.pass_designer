@@ -1,4 +1,5 @@
-.PHONY: lint reformat test-local test-integration docs locales
+.PHONY: lint reformat test-local test-integration docs locales \
+	frontend-install frontend-types lint-frontend test-frontend build-frontend
 
 lint:
 	uv run ruff check src tests
@@ -25,3 +26,19 @@ test-integration:
 		exit 0; \
 	fi; \
 	exit $$status
+
+frontend-install:
+	cd frontend && pnpm install --frozen-lockfile
+
+frontend-types:
+	cd frontend && node scripts/openapi.mjs && \
+		pnpm openapi-typescript openapi.json -o src/api/schema.d.ts
+
+lint-frontend:
+	cd frontend && pnpm tsc --noEmit
+
+test-frontend:
+	cd frontend && pnpm vitest run
+
+build-frontend:
+	cd frontend && pnpm build
