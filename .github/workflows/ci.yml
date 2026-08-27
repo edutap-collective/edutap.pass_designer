@@ -47,6 +47,14 @@ jobs:
         # marker is executed rather than quietly skipped forever.
         run: make test-integration
 
+      - name: The compiled catalogues must be in the wheel
+        # Task 1 shipped a Critical that only the artifact revealed: locales
+        # outside the package meant a wheel with no translations and a service
+        # that silently served English. Nothing else guards the artifacts glob.
+        run: |
+          uv build --wheel
+          python -m zipfile -l dist/*.whl | grep -q 'locales/de/LC_MESSAGES/messages.mo'
+
       - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
