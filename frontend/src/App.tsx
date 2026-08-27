@@ -6,6 +6,7 @@ import { LanguageSwitcher } from "./components/LanguageSwitcher";
 import { FrontRows } from "./components/FrontRows";
 import { HeadFields } from "./components/HeadFields";
 import { ModuleList } from "./components/ModuleList";
+import { Toolbar } from "./components/Toolbar";
 import { DraftProvider } from "./draft/context";
 import { Card } from "./preview/Card";
 
@@ -71,6 +72,7 @@ function Editor() {
           </section>
 
           <ModuleList catalogue={catalogue.data} />
+          <Toolbar />
         </form>
 
         <aside>
